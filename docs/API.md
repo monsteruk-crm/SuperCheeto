@@ -72,8 +72,8 @@
     - `{ "benchmarkId": string, "createdAt": number, "instruction": string, "tests": Array<{ "testId": string, "userPrompt": string, "imageRef": string|null, "hasImage": boolean }>, "results": Array<{ "testId": string, "model": string, "runs": number, "failures": number, "jsonValidRuns": number, "avgFirstTokenMs": number|null, "avgTtcMs": number|null, "minTtcMs": number|null, "maxTtcMs": number|null, "avgLatencyMs": number|null, "minLatencyMs": number|null, "maxLatencyMs": number|null, "totalInputTokens": number, "totalOutputTokens": number, "totalCostUsd": number|null, "costKnownRuns": number, "avgQualityScore": number|null, "qualityPassRuns": number, "imageRuns": number, "imageWorkedRuns": number, "aggregateScore": number }>, "attempts": Array<benchmark_log_payload_without_benchmarkId> }`
 
 ## Benchmark scoring notes
-- Benchmarks are executed with OpenAI `Responses` API and can include both text and image input in one request.
-- Cost is estimated when model pricing is known in backend pricing catalog or `OPENAI_MODEL_PRICING_JSON`.
+- Benchmarks are executed through AI Gateway `Responses` API (with Chat Completions fallback on 404) and can include both text and image input in one request.
+- Cost is estimated when model pricing is known in backend pricing catalog or `AI_GATEWAY_MODEL_PRICING_JSON`.
 - Quality score is rubric-based (required keys, answer presence, image claim check for image tests, and identifier check when requested).
 - `ttcMs` (time to complete) is the full request duration from send to final response.
 - Aggregate score is speed-first (0-100) and weights TTC/TTFT heavily, then reliability and quality:
@@ -82,14 +82,15 @@
   - 5% quality/image behavior
 
 ## Query streaming notes
-- Interactive `run_query` now uses Responses API streaming by default.
+- Interactive `run_query` now uses Responses API streaming by default through AI Gateway.
 - Frontend receives incremental text via `query_chunk` and then a final `query_response`.
 - `cancel_query` stops an in-flight query; frontend receives `query_state` with `running=false` and `cancelled=true`.
-- When indexed documents exist, backend injects top-K retrieved chunks from local RAG store into query context before OpenAI call.
+- When indexed documents exist, backend injects top-K retrieved chunks from local RAG store into query context before Gateway call.
+- Model strings use `creator/model` format (e.g. `openai/gpt-5.6-sol`); old bare IDs are normalized automatically.
 
 ## RAG notes
 - RAG vectors are persisted in local SQLite (`RAG_DB_PATH`), not browser storage.
-- Default embedding model is `text-embedding-3-small` (`RAG_EMBEDDING_MODEL`).
+- Default embedding model is `openai/text-embedding-3-small` through AI Gateway (`RAG_EMBEDDING_MODEL`).
 - Supported ingestion file types: `.txt`, `.md`, `.pdf`, `.docx`.
 
 ## Audio mode notes

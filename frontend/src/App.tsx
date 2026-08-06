@@ -10,7 +10,7 @@ import {
   BenchmarkLiveLog,
   BenchmarkProgress,
   BenchmarkRun,
-  OpenAIModelInfo,
+  GatewayModelInfo,
   Preset,
   RagDocument,
   SelectionRange,
@@ -264,7 +264,7 @@ const App: React.FC = () => {
   const [selectedMicAudioSource, setSelectedMicAudioSource] = useState(storedUiPreferences.selectedMicAudioSource || '')
   const [customInstruction, setCustomInstruction] = useState(storedUiPreferences.customInstruction || '')
   const [models, setModels] = useState<string[]>([])
-  const [modelDetails, setModelDetails] = useState<OpenAIModelInfo[]>([])
+  const [modelDetails, setModelDetails] = useState<GatewayModelInfo[]>([])
   const [selectedModel, setSelectedModel] = useState(storedUiPreferences.selectedModel || '')
   const [screenshotDataUrl, setScreenshotDataUrl] = useState<string | null>(null)
   const [includeScreenshotInQuery, setIncludeScreenshotInQuery] = useState(storedUiPreferences.includeScreenshotInQuery || false)

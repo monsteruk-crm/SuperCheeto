@@ -5,13 +5,13 @@ import {
   BenchmarkLiveLog,
   BenchmarkProgress,
   BenchmarkRun,
-  OpenAIModelInfo,
+  GatewayModelInfo,
   RagDocument
 } from '../types'
 
 type Props = {
   models: string[]
-  modelDetails: OpenAIModelInfo[]
+  modelDetails: GatewayModelInfo[]
   includeScreenshotInQuery: boolean
   onToggleIncludeScreenshot: (next: boolean) => void
   onRefreshModelDetails: () => void
@@ -530,7 +530,7 @@ const SettingsPage: React.FC<Props> = ({
               />
               <span>Send captured screenshot with query when available</span>
             </label>
-            <p className="muted">When disabled, screenshot stays local and is never sent to OpenAI.</p>
+            <p className="muted">When disabled, screenshot stays local and is never sent to AI Gateway or its selected model provider.</p>
             <hr />
             <h3>Local RAG Documents</h3>
             <p className="muted">
@@ -593,7 +593,7 @@ const SettingsPage: React.FC<Props> = ({
           <header>
             <div>
               <h2>Model Catalog</h2>
-              <p>Metadata returned by OpenAI models endpoint.</p>
+              <p>Metadata returned by AI Gateway models endpoint.</p>
             </div>
             <button className="ghost" onClick={onRefreshModelDetails}>Refresh model info</button>
           </header>

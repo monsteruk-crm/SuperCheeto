@@ -4,7 +4,7 @@ You are Codex. Build a working desktop app MVP on Ubuntu that:
 3) Shows a desktop UI where the user can select any portion of the transcript and either:
    - type a custom query, OR
    - choose a preset prompt from a dropdown,
-   then send (selected text + optional surrounding context) to OpenAI and display the response.
+   then send (selected text + optional surrounding context) to Vercel AI Gateway and display the response.
 
 Hard constraints:
 - Audio capture MUST be local on the machine (no cloud audio streaming).
@@ -27,7 +27,7 @@ Repository layout:
       audio_capture.py
       stt.py
       transcript.py
-      openai_client.py
+      ai_gateway_client.py
       ws_server.py
       settings.py
     requirements.txt
@@ -81,13 +81,13 @@ Backend design (must implement):
      - Default: selection text + 30 seconds before + 15 seconds after (based on segment timestamps), if available.
    - Provide rolling summary placeholder BUT for MVP you can skip summarization and just use time-window context.
 
-5) OpenAI query layer:
-   - Send text-only to OpenAI (no audio). Use environment variable OPENAI_API_KEY.
+5) AI Gateway query layer:
+   - Send text-only to Vercel AI Gateway (no audio). Use environment variable AI_GATEWAY_API_KEY.
    - Implement:
      - Preset prompts list (id, label, instruction template).
      - Request payload: { presetId or customInstruction, selectedText, contextText }
    - Response: plain text (plus optional structured metadata).
-   - IMPORTANT: Do not pretend to do web fact-checking. If preset is “Fact check”, wording must be “check for internal consistency and flag uncertain claims” unless browsing is added.
+   - IMPORTANT: Do not pretend to do web fact-checking. If preset is "Fact check", wording must be "check for internal consistency and flag uncertain claims" unless browsing is added.
 
 6) WebSocket server:
    - One WS endpoint on localhost (e.g. ws://127.0.0.1:8765).
@@ -139,7 +139,7 @@ E) OpenAI query call returns response in OutputPane.
 Build/run instructions (must provide):
 - backend: python venv, pip install -r requirements.txt, run main.py
 - frontend: npm install, npm run dev (Electron dev mode)
-- .env usage: OPENAI_API_KEY
+- .env usage: AI_GATEWAY_API_KEY
 - Note about Ubuntu audio: requires Pulse/PipeWire running; monitor sources available; user may need to select correct monitor.
 
 Quality requirements:
@@ -147,7 +147,7 @@ Quality requirements:
   - no monitor sources found,
   - parec/pw-cat not installed,
   - model not downloaded,
-  - OPENAI_API_KEY missing.
+  - AI_GATEWAY_API_KEY missing.
 - Avoid blocking UI; all backend work async.
 - Keep code readable, small, and testable.
 

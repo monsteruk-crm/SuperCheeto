@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 from .audio_capture import AudioCapture, discover_audio_sources
 from .benchmark_harness import BENCHMARK_HARNESS_PROMPT, build_benchmark_case_input
 from .model_pricing import estimate_cost_usd
-from .openai_client import OpenAIClient, filter_supported_chat_models, normalize_model_id, preset_by_id
+from .ai_gateway_client import AIGatewayClient, filter_supported_language_models, normalize_gateway_model_id, preset_by_id
 from .rag_store import LocalRagStore
 from .settings import Settings
 from .stt import TRANSCRIPTION_LANGUAGE, Segment, StreamingTranscriber
@@ -55,7 +55,7 @@ class AppController:
         self._query_task: Optional[asyncio.Task] = None
         self._query_request_id: Optional[str] = None
         self._stop_event = asyncio.Event()
-        self._openai_client: Optional[OpenAIClient] = None
+        self._ai_gateway_client: Optional[AIGatewayClient] = None
         self._rag_store = LocalRagStore(
             db_path=self.settings.rag_db_path,
             chunk_size_chars=self.settings.rag_chunk_size_chars,
@@ -114,8 +114,8 @@ class AppController:
         await self._stop_meter_loop("system")
         await self._stop_meter_loop("mic")
         await self.hub.stop()
-        if self._openai_client:
-            await self._openai_client.close()
+        if self._ai_gateway_client:
+            await self._ai_gateway_client.close()
         self._rag_store.close()
 
     async def _handle_message(self, data: dict) -> None:
@@ -164,22 +164,23 @@ class AppController:
         elif msg_type == "rag_clear":
             await self.rag_clear()
 
-    async def _ensure_openai_client(self) -> Optional[OpenAIClient]:
-        api_key = os.getenv("OPENAI_API_KEY")
+    async def _ensure_ai_gateway_client(self) -> Optional[AIGatewayClient]:
+        api_key = os.getenv("AI_GATEWAY_API_KEY") or os.getenv("VERCEL_OIDC_TOKEN")
         if not api_key:
             return None
-        if not self._openai_client:
-            self._openai_client = OpenAIClient(
+        if not self._ai_gateway_client:
+            self._ai_gateway_client = AIGatewayClient(
                 api_key=api_key,
-                model=self.settings.openai_model,
-                timeout_seconds=self.settings.openai_timeout_seconds,
+                model=self.settings.ai_gateway_model,
+                base_url=self.settings.ai_gateway_base_url,
+                timeout_seconds=self.settings.ai_gateway_timeout_seconds,
             )
-        return self._openai_client
+        return self._ai_gateway_client
 
     async def _embed_texts(self, texts: list[str]) -> list[list[float]]:
-        client = await self._ensure_openai_client()
+        client = await self._ensure_ai_gateway_client()
         if not client:
-            raise RuntimeError("OPENAI_API_KEY is required for RAG embeddings.")
+            raise RuntimeError("AI_GATEWAY_API_KEY or VERCEL_OIDC_TOKEN is required for RAG embeddings.")
         return await client.embed_texts(texts, model=self.settings.rag_embedding_model)
 
     async def _broadcast_rag_documents(self) -> None:
@@ -394,13 +395,13 @@ class AppController:
             await self.hub.broadcast("error", {"message": f"Audio meter loop ({stream_kind}) error: {exc}"})
 
     async def _broadcast_models(self) -> None:
-        client = await self._ensure_openai_client()
-        normalized_default_model = normalize_model_id(self.settings.openai_model) or self.settings.openai_model
+        client = await self._ensure_ai_gateway_client()
+        normalized_default_model = normalize_gateway_model_id(self.settings.ai_gateway_model) or self.settings.ai_gateway_model
         if not client:
             await self.hub.broadcast("models_list", {"models": [], "selectedModel": normalized_default_model})
             return
         try:
-            models = filter_supported_chat_models(await client.list_models())
+            models = await client.list_models()
         except Exception:
             models = [normalized_default_model]
         if normalized_default_model and normalized_default_model not in models:
@@ -408,7 +409,7 @@ class AppController:
         await self.hub.broadcast("models_list", {"models": models, "selectedModel": normalized_default_model})
 
     async def _broadcast_model_details(self) -> None:
-        client = await self._ensure_openai_client()
+        client = await self._ensure_ai_gateway_client()
         if not client:
             await self.hub.broadcast("models_details", {"models": []})
             return
@@ -578,7 +579,7 @@ class AppController:
             "Queued query %s preset=%s model=%s selected_chars=%s",
             request_id,
             payload.get("presetId") or "custom",
-            (payload.get("model") or self.settings.openai_model),
+            (payload.get("model") or self.settings.ai_gateway_model),
             len(str(payload.get("selectedText") or "")),
         )
         self._query_request_id = request_id
@@ -617,7 +618,7 @@ class AppController:
                 logger.warning("Query %s rejected: instruction missing", request_id)
                 await self.hub.broadcast("error", {"message": "Instruction missing."})
                 return
-            requested_model = normalize_model_id((data.get("model") or "").strip()) or normalize_model_id(self.settings.openai_model) or self.settings.openai_model
+            requested_model = normalize_gateway_model_id((data.get("model") or "").strip()) or normalize_gateway_model_id(self.settings.ai_gateway_model) or self.settings.ai_gateway_model
             include_screenshot = bool(data.get("includeScreenshot"))
             screenshot_data_url = (data.get("screenshotDataUrl") or "").strip() or None
             if screenshot_data_url and not screenshot_data_url.startswith("data:image/"):
@@ -663,10 +664,10 @@ class AppController:
                     f"Document context (retrieved from local RAG store):\n{rag_context}"
                 ).strip()
 
-            client = await self._ensure_openai_client()
+            client = await self._ensure_ai_gateway_client()
             if not client:
-                logger.warning("Query %s rejected: OPENAI_API_KEY missing", request_id)
-                await self.hub.broadcast("error", {"message": "OPENAI_API_KEY is missing."})
+                logger.warning("Query %s rejected: AI_GATEWAY_API_KEY missing", request_id)
+                await self.hub.broadcast("error", {"message": "AI_GATEWAY_API_KEY or VERCEL_OIDC_TOKEN is required."})
                 return
 
             query_started = True
@@ -686,9 +687,9 @@ class AppController:
                     ),
                 )
             except Exception as exc:
-                logger.exception("OpenAI request failed for query %s", request_id)
+                logger.exception("AI Gateway request failed for query %s", request_id)
                 await self.hub.broadcast("query_state", {"running": False, "requestId": request_id})
-                await self.hub.broadcast("error", {"message": f"OpenAI request failed: {exc}"})
+                await self.hub.broadcast("error", {"message": f"AI Gateway request failed: {exc}"})
                 return
 
             await self.hub.broadcast("query_state", {"running": False, "requestId": request_id})
@@ -802,16 +803,10 @@ class AppController:
             await self.hub.broadcast("error", {"message": "At least one benchmark test is required."})
             return
 
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            await self.hub.broadcast("error", {"message": "OPENAI_API_KEY is missing."})
+        client = await self._ensure_ai_gateway_client()
+        if not client:
+            await self.hub.broadcast("error", {"message": "AI_GATEWAY_API_KEY or VERCEL_OIDC_TOKEN is required."})
             return
-        if not self._openai_client:
-            self._openai_client = OpenAIClient(
-                api_key=api_key,
-                model=self.settings.openai_model,
-                timeout_seconds=self.settings.openai_timeout_seconds,
-            )
 
         total = len(tests) * len(models) * repeats
         completed = 0
@@ -854,7 +849,7 @@ class AppController:
                             user_prompt=user_prompt,
                             image_ref_id=image_ref if image_data_url else None,
                         )
-                        result = await self._openai_client.run_query(
+                        result = await self._ai_gateway_client.run_query(
                             instruction=instruction,
                             selected_text=selected_text,
                             context_text="",

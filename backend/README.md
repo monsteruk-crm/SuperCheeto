@@ -1,6 +1,6 @@
 # Backend
 
-Python asyncio service for local system-audio capture, near-real-time transcription, and OpenAI queries.
+Python asyncio service for local system-audio capture, near-real-time transcription, and Vercel AI Gateway queries.
 
 ## Setup
 ```bash
@@ -17,8 +17,8 @@ python -m app.main
 ```
 
 The backend logs query lifecycle events and failures through the standard Python logger, which the launcher captures into `.run/backend.log`.
-If the Responses API returns `404`, the backend falls back to Chat Completions for the same query so older project/key permissions do not hard-fail the app.
-Deprecated ChatGPT snapshot aliases such as `gpt-5.1-chat-latest` are normalized to durable API model ids such as `gpt-5.1`.
+If the Gateway Responses API returns `404`, the backend falls back to Chat Completions on the same Gateway host.
+Deprecated ChatGPT snapshot aliases such as `gpt-5.2-chat-latest` are normalized to Gateway slugs such as `openai/gpt-5.6-sol`.
 Streamed Responses API calls explicitly set `stream: true`; without that flag the API returns a plain JSON body and the SSE parser sees no output events.
 
 ## Test
@@ -41,7 +41,7 @@ Options:
 The prototype shows a live webcam overlay with coarse gaze direction labels (`left/right/up/down/center`, including diagonals).
 
 ## Configuration
-- `OPENAI_API_KEY` must be set in the environment or a `.env` file in `backend/`.
+- `AI_GATEWAY_API_KEY` must be set in the environment or `backend/.env.local` (falls back to `VERCEL_OIDC_TOKEN`).
 - Optional overrides in `.env`:
   - `WS_HOST`, `WS_PORT`
   - `AUDIO_SOURCE` (exact Pulse/PipeWire monitor source name to force system-audio capture)
@@ -54,11 +54,12 @@ The prototype shows a live webcam overlay with coarse gaze direction labels (`le
   - `STT_MIN_DECODE_RMS` (default `0.0010`; skips decoding on near-silent windows to reduce hallucinations)
   - `STT_NO_VAD_FALLBACK_MIN_RMS` (default `0.0025`; blocks no-VAD fallback on very low-energy windows)
   - `RAG_DB_PATH` (SQLite path for local vector DB, default `backend/data/rag.sqlite`)
-  - `RAG_EMBEDDING_MODEL` (default `text-embedding-3-small`)
+  - `RAG_EMBEDDING_MODEL` (default `openai/text-embedding-3-small`)
   - `RAG_TOP_K` (number of retrieved chunks injected into each query context)
 - `RAG_CHUNK_SIZE_CHARS`, `RAG_CHUNK_OVERLAP_CHARS` (ingest chunking strategy)
-- Query execution prefers the Responses API, then falls back to Chat Completions if the Responses endpoint returns `404 Not Found`.
-- Deprecated `*-chat-latest` aliases are remapped before query execution so stale UI selections do not keep hitting removed model ids.
+- Query execution prefers the Gateway Responses API, then falls back to Chat Completions on the same Gateway host if the Responses endpoint returns `404 Not Found`.
+- Deprecated `*-chat-latest` aliases are remapped to Gateway slugs (e.g. `openai/gpt-5.6-sol`) before query execution so stale UI selections do not keep hitting removed model ids.
+- Model discovery filters to `type == "language"` rows, excluding embedding/image/video models from the selector.
 - Streamed Responses API requests set `stream: true` so the backend receives `response.output_text.delta` events and final completion state.
 
 ## Audio Notes (Ubuntu)

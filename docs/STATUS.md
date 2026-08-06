@@ -5,8 +5,8 @@
 - Frontend Electron app connects to backend and supports transcript selection + prompt execution.
 - Backend query failures are logged with stack traces, and `./scripts/dev.sh start` prints a recent backend log excerpt after startup.
 - The prompt area now surfaces the latest backend error inline, so failures are visible without opening the terminal.
-- OpenAI query execution now retries Chat Completions if the Responses API returns `404 Not Found`.
-- Deprecated OpenAI chat snapshot aliases such as `gpt-5.1-chat-latest` are remapped to durable API models such as `gpt-5.1`, and those stale aliases are hidden from the model picker.
+- Cloud AI calls (language, embeddings, model discovery) now route through Vercel AI Gateway (`https://ai-gateway.vercel.sh/v1`) with OpenAI-compatible REST API.
+- Deprecated chat snapshot aliases such as `gpt-5.1-chat-latest` are remapped to Gateway slugs such as `openai/gpt-5.1`, and `gpt-5.2-chat-latest`/`gpt-5.3-chat-latest` map to `openai/gpt-5.6-sol`.
 - Streamed query runs now set `stream: true` on Responses API payloads, restoring live token updates and final answer text for current models.
 - STT now defaults to CPU-safe settings for local runs, so machines without CUDA libraries do not fail trying to load `libcublas`.
 - The desk header is split into stacked vertical `Audio` and `AI` blocks, and the inline `Answer` action prefers the custom instruction when one is present.
@@ -73,16 +73,16 @@
 ## Known issues / blockers
 - First startup fails if dependencies are missing in `backend/.venv` or `frontend/node_modules`; launcher does not auto-install deps.
   - Paths: `scripts/dev.sh`, `backend/requirements.txt`, `frontend/package.json`.
-- Query failures still depend on `OPENAI_API_KEY` and network access, but backend logs now show request/context details and the launcher surfaces the latest backend output immediately after `start`.
+- Query failures depend on `AI_GATEWAY_API_KEY` (or `VERCEL_OIDC_TOKEN`) and network access, but backend logs now show request/context details and the launcher surfaces the latest backend output immediately after `start`.
   - Paths: `backend/app/main.py`, `scripts/dev.sh`.
 - Backend errors are now also rendered in the UI prompt area.
   - Paths: `frontend/src/App.tsx`, `frontend/src/components/PromptBar.tsx`, `frontend/src/styles.css`.
-- Responses API access can vary by project/key; the backend now falls back to Chat Completions on `404`.
-  - Paths: `backend/app/openai_client.py`, `backend/README.md`.
-- The `/v1/models` list can still include deprecated aliases that now 404 at inference time; the backend filters/remaps those before advertising models to the UI or sending queries.
-  - Paths: `backend/app/openai_client.py`, `backend/app/main.py`.
-- If streamed Responses calls omit `stream: true`, the API returns non-SSE JSON and the parser falls through to `(No response text returned.)`; this is now fixed.
-  - Paths: `backend/app/openai_client.py`.
+- Responses API access can vary by project/key; the backend falls back to Chat Completions on `404` (within AI Gateway, not direct OpenAI).
+  - Paths: `backend/app/ai_gateway_client.py`, `backend/README.md`.
+- The `/v1/models` list can include non-language models (embedding/image/video); the backend filters to `type == "language"` before advertising models to the UI.
+  - Paths: `backend/app/ai_gateway_client.py`, `backend/app/main.py`.
+- If streamed Responses calls omit `stream: true`, the API returns non-SSE JSON and the parser falls through to `(No response text returned.)`; this is fixed.
+  - Paths: `backend/app/ai_gateway_client.py`.
 - Frontend cleanup fallback matches the standard repo dev stack binaries (`concurrently`, `vite`, `tsc`, `wait-on`, `electron`); non-standard/custom frontend launch commands may still need manual stop.
   - Paths: `scripts/dev.sh`, `frontend/package.json`.
 - Audio routing can still require manual monitor selection in Ubuntu audio stack, but source discovery now works without `pactl` when `pw-dump` is available.
@@ -97,10 +97,10 @@
   - Paths: `frontend/src/App.tsx`, `frontend/src/components/SettingsPage.tsx`.
 - Benchmark image assets are also local-storage-based and can grow large if many high-resolution images are uploaded.
   - Paths: `frontend/src/App.tsx`, `frontend/src/components/SettingsPage.tsx`.
-- Model pricing defaults can drift as OpenAI pricing changes; keep `OPENAI_MODEL_PRICING_JSON` up to date.
+- Model pricing defaults can drift as Gateway catalog pricing changes; keep `AI_GATEWAY_MODEL_PRICING_JSON` up to date.
   - Paths: `backend/app/model_pricing.py`, `README.md`.
-- RAG embeddings currently rely on OpenAI embeddings API; if API key/network is unavailable, ingestion/retrieval is unavailable.
-  - Paths: `backend/app/rag_store.py`, `backend/app/openai_client.py`.
+- RAG embeddings currently rely on AI Gateway embeddings API; if API key/network is unavailable, ingestion/retrieval is unavailable.
+  - Paths: `backend/app/rag_store.py`, `backend/app/ai_gateway_client.py`.
 - If `backend/.env.local` forces `STT_DEVICE=cuda` with a GPU-only model profile on a machine without CUDA libraries, transcription will still fail until those env overrides are changed.
   - Paths: `backend/.env.local`, `backend/app/settings.py`.
 - Eye-tracking prototype depends on local webcam access and GUI display (OpenCV window); headless sessions will not render preview.

@@ -16,7 +16,7 @@ export type Preset = {
   instruction: string
 }
 
-export type OpenAIModelInfo = {
+export type GatewayModelInfo = {
   id: string
   object: string
   created: number | null

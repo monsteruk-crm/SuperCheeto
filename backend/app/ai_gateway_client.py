@@ -51,11 +51,13 @@ PRESET_PROMPTS: List[PresetPrompt] = [
 
 DEPRECATED_MODEL_REPLACEMENTS: Dict[str, str] = {
     # Official docs now show this ChatGPT snapshot as deprecated; the durable API model still works.
-    "gpt-5.1-chat-latest": "gpt-5.1",
+    "gpt-5.1-chat-latest": "openai/gpt-5.1",
     # Official deprecations page recommends GPT-5.6 Sol for these removed chat snapshots.
-    "gpt-5.2-chat-latest": "gpt-5.6-sol",
-    "gpt-5.3-chat-latest": "gpt-5.6-sol",
+    "gpt-5.2-chat-latest": "openai/gpt-5.6-sol",
+    "gpt-5.3-chat-latest": "openai/gpt-5.6-sol",
 }
+
+DEFAULT_BASE_URL = "https://ai-gateway.vercel.sh/v1"
 
 
 def preset_by_id(preset_id: str) -> Optional[PresetPrompt]:
@@ -65,18 +67,42 @@ def preset_by_id(preset_id: str) -> Optional[PresetPrompt]:
     return None
 
 
-def normalize_model_id(model_id: Optional[str]) -> Optional[str]:
+def normalize_gateway_model_id(model_id: Optional[str]) -> Optional[str]:
+    """Normalize a model identifier for use with Vercel AI Gateway.
+
+    Rules (deterministic):
+    1. Trim whitespace.
+    2. Apply current deprecated snapshot replacements.
+    3. If the result already contains '/', leave it unchanged (it's a creator/model slug).
+    4. Otherwise prefix it with 'openai/' so old bare model IDs remain usable.
+    """
     normalized = (model_id or "").strip()
     if not normalized:
         return None
-    return DEPRECATED_MODEL_REPLACEMENTS.get(normalized, normalized)
+    # Apply deprecated replacements first
+    normalized = DEPRECATED_MODEL_REPLACEMENTS.get(normalized, normalized)
+    # If it already has a creator prefix, return as-is
+    if "/" in normalized:
+        return normalized
+    # Otherwise prefix with openai/
+    return f"openai/{normalized}"
 
 
-def filter_supported_chat_models(models: Sequence[str]) -> List[str]:
+def filter_supported_language_models(models: Sequence[Dict[str, Any]]) -> List[str]:
+    """Filter model list to only include language models, returning normalized IDs."""
     filtered: List[str] = []
     seen: set[str] = set()
-    for raw_model in models:
-        normalized = normalize_model_id(raw_model)
+    for item in models:
+        if not isinstance(item, dict):
+            continue
+        model_type = item.get("type", "")
+        # Only include language models; skip embedding/image/video models
+        if model_type and model_type != "language":
+            continue
+        model_id = item.get("id", "")
+        if not model_id:
+            continue
+        normalized = normalize_gateway_model_id(model_id)
         if not normalized or normalized in seen:
             continue
         seen.add(normalized)
@@ -84,15 +110,26 @@ def filter_supported_chat_models(models: Sequence[str]) -> List[str]:
     return filtered
 
 
-class OpenAIClient:
-    def __init__(self, api_key: str, model: str, timeout_seconds: float = 30.0) -> None:
+class AIGatewayClient:
+    def __init__(
+        self,
+        api_key: str,
+        model: str,
+        base_url: str = DEFAULT_BASE_URL,
+        timeout_seconds: float = 30.0,
+        transport: Optional[httpx.AsyncBaseTransport] = None,
+    ) -> None:
         self.api_key = api_key
         self.default_model = model
-        self._client = httpx.AsyncClient(
-            base_url="https://api.openai.com/v1",
-            timeout=timeout_seconds,
-            headers={"Authorization": f"Bearer {api_key}"},
-        )
+        self.base_url = base_url.rstrip("/")
+        client_kwargs: Dict[str, Any] = {
+            "base_url": self.base_url,
+            "timeout": timeout_seconds,
+            "headers": {"Authorization": f"Bearer {api_key}"},
+        }
+        if transport is not None:
+            client_kwargs["transport"] = transport
+        self._client = httpx.AsyncClient(**client_kwargs)
 
     async def close(self) -> None:
         await self._client.aclose()
@@ -108,7 +145,7 @@ class OpenAIClient:
         on_stream_delta: Optional[Callable[[str], Awaitable[None] | None]] = None,
     ) -> QueryResult:
         prompt = self._build_prompt(selected_text, context_text)
-        model_id = normalize_model_id(model) or normalize_model_id(self.default_model) or self.default_model
+        model_id = normalize_gateway_model_id(model) or normalize_gateway_model_id(self.default_model) or self.default_model
         if stream:
             try:
                 data, first_token_latency_ms = await self._run_responses_streaming(
@@ -402,9 +439,7 @@ class OpenAIClient:
         response.raise_for_status()
         data = response.json()
         items = data.get("data", [])
-        ids = [item.get("id", "") for item in items if isinstance(item, dict)]
-        models = sorted(model_id for model_id in ids if model_id)
-        return models
+        return filter_supported_language_models(items)
 
     async def list_model_details(self) -> List[Dict[str, Any]]:
         response = await self._client.get("/models")
@@ -414,6 +449,10 @@ class OpenAIClient:
         details: List[Dict[str, Any]] = []
         for item in items:
             if not isinstance(item, dict):
+                continue
+            # Only include language models
+            model_type = item.get("type", "")
+            if model_type and model_type != "language":
                 continue
             model_id = item.get("id")
             if not model_id:
@@ -429,7 +468,11 @@ class OpenAIClient:
         details.sort(key=lambda row: row["id"])
         return details
 
-    async def embed_texts(self, texts: Sequence[str], model: str = "text-embedding-3-small") -> List[List[float]]:
+    async def embed_texts(
+        self,
+        texts: Sequence[str],
+        model: str = "openai/text-embedding-3-small",
+    ) -> List[List[float]]:
         cleaned = [str(text or "").strip() for text in texts if str(text or "").strip()]
         if not cleaned:
             return []

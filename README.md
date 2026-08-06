@@ -3,7 +3,7 @@
 Desktop app MVP that captures system audio locally, transcribes near-real-time with faster-whisper, and lets you run preset/custom prompts against selected transcript text.
 
 ## Architecture
-- **Backend (Python)**: captures system monitor audio or microphone input via Pulse/PipeWire, streams to faster-whisper, serves a WebSocket API, and calls OpenAI.
+- **Backend (Python)**: captures system monitor audio or microphone input via Pulse/PipeWire, streams to faster-whisper, serves a WebSocket API, and calls Vercel AI Gateway for cloud AI.
 - **Frontend (Electron + React)**: renders transcript, supports selection, and displays model responses.
 - **Transport**: WebSocket on `ws://127.0.0.1:8765`.
 
@@ -22,7 +22,7 @@ docs/      # Prompts and design briefs/
 
 This starts both services and prints a recent backend log excerpt in the terminal so AI request failures are easier to diagnose immediately.
 The desktop UI also shows the latest backend error in the prompt area.
-If the current OpenAI project cannot reach the Responses API, the backend retries the same query through Chat Completions.
+If the AI Gateway cannot reach the Responses endpoint, the backend retries the same query through Chat Completions (within Gateway).
 Deprecated `*-chat-latest` selections are automatically remapped to supported base models before the request is sent.
 Responses API queries now send the required `stream: true` flag for streamed runs, so the UI receives partial tokens and final answer text instead of the `(No response text returned.)` placeholder.
 
@@ -77,7 +77,7 @@ pip install -r requirements.txt
 python -m app.main
 ```
 
-Set `OPENAI_API_KEY` in `backend/.env` or the environment. Use `backend/.env.example` as a template.
+Set `AI_GATEWAY_API_KEY` in `backend/.env.local` or the environment. Use `backend/.env.example` as a template.
 
 Backend tests:
 ```bash
@@ -154,10 +154,13 @@ Frontend → Backend:
 - `rag_list`
 - `rag_clear`
 
-## OpenAI
-- Set `OPENAI_API_KEY` before running.
-- Default model: `gpt-4o` (override with `OPENAI_MODEL`).
-- RAG uses OpenAI embeddings by default (`RAG_EMBEDDING_MODEL=text-embedding-3-small`) and stores vectors locally in SQLite (`RAG_DB_PATH`).
+## Vercel AI Gateway
+- Set `AI_GATEWAY_API_KEY` before running (or `VERCEL_OIDC_TOKEN` for Vercel deployments).
+- Default model: `openai/gpt-5.6-sol` (override with `VERCEL_MODEL`).
+- Base URL: `https://ai-gateway.vercel.sh/v1` (override with `AI_GATEWAY_BASE_URL`).
+- Old bare model IDs (e.g. `gpt-5.1`) are auto-prefixed to `openai/gpt-5.1`.
+- RAG uses Gateway embeddings (`RAG_EMBEDDING_MODEL=openai/text-embedding-3-small`) and stores vectors locally in SQLite (`RAG_DB_PATH`).
+- Audio capture and STT remain entirely local; no audio is sent to any cloud service.
 
 ## RAG document ingestion
 - Open **Settings** and use **Local RAG Documents**.
@@ -181,7 +184,7 @@ Frontend → Backend:
   - Speed-first aggregate score (0-100)
 - Response pane includes an editable pre-send selected-text textarea (collapses/expands via env-configurable rows).
 - Optional pricing override env var:
-  - `OPENAI_MODEL_PRICING_JSON='{"model-id":{"input":1.25,"output":10.0}}'` (USD per 1M tokens)
+  - `AI_GATEWAY_MODEL_PRICING_JSON='{"openai/gpt-5.6-sol":{"input":5.0,"output":30.0}}'` (USD per 1M tokens)
 
 ## First Run Checklist
 1) Start backend/frontend and confirm the System/Mic meters move with input (meters are active even before pressing Start).

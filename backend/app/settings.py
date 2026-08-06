@@ -66,13 +66,14 @@ class Settings:
     context_before_seconds: float = float(os.getenv("CONTEXT_BEFORE", "30"))
     context_after_seconds: float = float(os.getenv("CONTEXT_AFTER", "15"))
 
-    openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4o")
-    openai_timeout_seconds: float = float(os.getenv("OPENAI_TIMEOUT", "30"))
+    ai_gateway_model: str = os.getenv("VERCEL_MODEL", "openai/gpt-5.6-sol")
+    ai_gateway_base_url: str = os.getenv("AI_GATEWAY_BASE_URL", "https://ai-gateway.vercel.sh/v1")
+    ai_gateway_timeout_seconds: float = float(os.getenv("AI_GATEWAY_TIMEOUT", "30"))
     rag_db_path: str = os.getenv(
         "RAG_DB_PATH",
         str(Path(__file__).resolve().parents[1] / "data" / "rag.sqlite"),
     )
-    rag_embedding_model: str = os.getenv("RAG_EMBEDDING_MODEL", "text-embedding-3-small")
+    rag_embedding_model: str = os.getenv("RAG_EMBEDDING_MODEL", "openai/text-embedding-3-small")
     rag_top_k: int = int(os.getenv("RAG_TOP_K", "6"))
     rag_chunk_size_chars: int = int(os.getenv("RAG_CHUNK_SIZE_CHARS", "1200"))
     rag_chunk_overlap_chars: int = int(os.getenv("RAG_CHUNK_OVERLAP_CHARS", "180"))

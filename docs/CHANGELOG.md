@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-08-06 (Vercel AI Gateway migration)
+- User-visible:
+  - Cloud AI calls (language queries, embeddings, model discovery) now route through Vercel AI Gateway instead of direct OpenAI.
+  - Default model is now `openai/gpt-5.6-sol` (via `VERCEL_MODEL`); old bare model IDs like `gpt-5.1` are auto-prefixed to `openai/gpt-5.1`.
+  - Model selector now only shows language models (embedding/image/video models are filtered out).
+  - UI text updated to reference "AI Gateway" instead of "OpenAI" where appropriate.
+- Internal:
+  - Replaced `backend/app/openai_client.py` with `backend/app/ai_gateway_client.py` (`AIGatewayClient`).
+  - Auth reads `AI_GATEWAY_API_KEY` first, falls back to `VERCEL_OIDC_TOKEN`; `OPENAI_API_KEY` is no longer used.
+  - Base URL defaults to `https://ai-gateway.vercel.sh/v1` (configurable via `AI_GATEWAY_BASE_URL`).
+  - Model normalization: bare IDs get `openai/` prefix; `gpt-5.2-chat-latest`/`gpt-5.3-chat-latest` map to `openai/gpt-5.6-sol`.
+  - Model discovery filters to `type == "language"` rows from `/models` endpoint.
+  - Embedding default changed to `openai/text-embedding-3-small`.
+  - Pricing override env var renamed to `AI_GATEWAY_MODEL_PRICING_JSON`; keys use `creator/model` form.
+  - Added `openai/gpt-5.6-sol` to pricing catalog (base-tier: $5.00/$30.00 per 1M tokens).
+  - Frontend type `OpenAIModelInfo` renamed to `GatewayModelInfo`.
+  - Added 23 unit tests in `backend/tests/test_ai_gateway_client.py`.
+  - Audio capture and STT remain entirely local; no changes to `audio_capture.py`, `stt.py`, or `requirements.txt`.
+- How to test:
+  - `cd backend && .venv/bin/python3.14 -m unittest tests.test_ai_gateway_client -v`
+  - `cd frontend && npm run build`
+  - Set `AI_GATEWAY_API_KEY` in `backend/.env.local`, start app, confirm queries work through Gateway.
+  - Verify model selector contains `openai/gpt-5.6-sol` and no embedding models.
+
 ## 2026-08-04 (backend query logging + startup log excerpt)
 - User-visible:
   - `./scripts/dev.sh start` now prints a recent backend log excerpt immediately after startup, so AI request failures are visible in the terminal flow.
