@@ -1,12 +1,19 @@
 from __future__ import annotations
 
 import asyncio
+import re
 from collections import deque
 from dataclasses import dataclass
 from typing import Callable, Deque, List, Optional
 
 import numpy as np
 from faster_whisper import WhisperModel
+
+
+# This application is intended to transcribe English speech. Keeping the
+# fallback here prevents Whisper from auto-detecting another language when a
+# caller omits a language hint.
+TRANSCRIPTION_LANGUAGE = "en"
 
 
 @dataclass
@@ -92,7 +99,7 @@ class StreamingTranscriber:
         self.device = device
         self.compute_type = compute_type
         self.vad_filter = vad_filter
-        self.language = self._normalize_language(language)
+        self.language = self._normalize_language(language) or TRANSCRIPTION_LANGUAGE
         self.min_decode_rms = max(0.0, min_decode_rms)
         self.no_vad_fallback_min_rms = max(0.0, no_vad_fallback_min_rms)
         self.partial_window = partial_window
@@ -110,6 +117,7 @@ class StreamingTranscriber:
         self._segment_id = 0
         self._last_final_time = 0.0
         self._last_live_text = ""
+        self._last_final_words: List[str] = []
         self._lock = asyncio.Lock()
 
     @staticmethod
@@ -120,7 +128,7 @@ class StreamingTranscriber:
         return normalized or None
 
     def set_language(self, language: Optional[str]) -> None:
-        self.language = self._normalize_language(language)
+        self.language = self._normalize_language(language) or TRANSCRIPTION_LANGUAGE
 
     @staticmethod
     def _audio_rms(audio: np.ndarray) -> float:
@@ -128,11 +136,50 @@ class StreamingTranscriber:
             return 0.0
         return float(np.sqrt(np.mean(np.square(audio))))
 
+    @staticmethod
+    def _normalized_words(text: str) -> List[str]:
+        return [match.group(0).lower() for match in re.finditer(r"[A-Za-z0-9']+", text)]
+
+    @staticmethod
+    def _word_start_offset(text: str, word_count: int) -> int:
+        if word_count <= 0:
+            return 0
+        seen = 0
+        for match in re.finditer(r"[A-Za-z0-9']+", text):
+            if seen == word_count:
+                return match.start()
+            seen += 1
+        return len(text)
+
+    def _new_final_text(self, text: str) -> str:
+        normalized_words = self._normalized_words(text)
+        if not normalized_words:
+            return ""
+        if len(normalized_words) < 3:
+            return text.strip()
+
+        previous_words = self._last_final_words
+        overlap = 0
+        max_overlap = min(len(previous_words), len(normalized_words))
+        for candidate in range(max_overlap, 0, -1):
+            if previous_words[-candidate:] == normalized_words[:candidate]:
+                overlap = candidate
+                break
+
+        if overlap >= len(normalized_words):
+            return ""
+
+        start_offset = self._word_start_offset(text, overlap)
+        new_text = text[start_offset:].lstrip()
+        self._last_final_words = normalized_words
+        return new_text
+
     def reset_state(self) -> None:
         self._buffer = AudioBuffer(self.sample_rate, max_seconds=self._max_buffer_seconds)
         self._segment_id = 0
         self._last_final_time = 0.0
         self._last_live_text = ""
+        self._last_final_words = []
 
     async def load_model(self) -> None:
         def _load() -> WhisperModel:
@@ -212,7 +259,7 @@ class StreamingTranscriber:
                 continue
             if t1 > cutoff:
                 continue
-            text = seg.text.strip()
+            text = self._new_final_text(seg.text.strip())
             if not text:
                 continue
             self._segment_id += 1

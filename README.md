@@ -11,7 +11,7 @@ Desktop app MVP that captures system audio locally, transcribes near-real-time w
 ```
 backend/   # Python services
 frontend/  # Electron + React UI
-docs/      # Prompts and design briefs
+docs/      # Prompts and design briefs/
 ```
 
 ## Quick Start
@@ -19,6 +19,12 @@ docs/      # Prompts and design briefs
 ```bash
 ./scripts/dev.sh start
 ```
+
+This starts both services and prints a recent backend log excerpt in the terminal so AI request failures are easier to diagnose immediately.
+The desktop UI also shows the latest backend error in the prompt area.
+If the current OpenAI project cannot reach the Responses API, the backend retries the same query through Chat Completions.
+Deprecated `*-chat-latest` selections are automatically remapped to supported base models before the request is sent.
+Responses API queries now send the required `stream: true` flag for streamed runs, so the UI receives partial tokens and final answer text instead of the `(No response text returned.)` placeholder.
 
 Stop both:
 ```bash
@@ -31,6 +37,8 @@ Other helpers:
 ./scripts/dev.sh logs
 ./scripts/dev.sh restart
 ```
+
+Use `./scripts/dev.sh logs` for the full backend/frontend log tail if the startup excerpt is not enough.
 
 ### Launch production profile (no Vite/watch)
 ```bash
@@ -99,7 +107,16 @@ npm run dev
 
 ## Audio Setup (Ubuntu)
 - Requires PulseAudio or PipeWire (with Pulse shim).
-- The backend resolves default monitor/mic sources using `pactl info`.
+- Install the audio stack and routing tools with:
+  ```bash
+  sudo apt install -y pipewire pipewire-bin pipewire-pulse wireplumber pulseaudio-utils pavucontrol
+  ```
+- Package mapping:
+  - `pipewire-bin` provides `pw-cat` and `pw-dump`
+  - `wireplumber` provides `wpctl`
+  - `pulseaudio-utils` provides `pactl`
+  - `pipewire-pulse` provides the Pulse shim used by `pactl`-style discovery on PipeWire
+- The backend resolves default monitor/mic sources using `pactl info` when available, and falls back to PipeWire-native `pw-dump` metadata on minimal installs that do not ship `pulseaudio-utils`.
 - If input routing is wrong, install and open `pavucontrol` (`sudo apt install -y pavucontrol`), then in the **Recording** tab set the backend (`python`) input to a `Monitor of ...` source.
 - If no monitor/mic sources are found, select one manually in the UI or send it over WebSocket.
 - Microphone transcription now defaults to English language hint (`STT_MIC_LANGUAGE=en`) to reduce accent-related auto-detection flips. If you primarily speak another language, set `STT_MIC_LANGUAGE` in `backend/.env` (for example `it`).

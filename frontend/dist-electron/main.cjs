@@ -6,6 +6,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const electron_1 = require("electron");
 const path_1 = __importDefault(require("path"));
 const isDev = () => Boolean(process.env.VITE_DEV_SERVER_URL || process.env.NODE_ENV === 'development');
+const CAPTURE_SCREEN_SHORTCUT = 'CommandOrControl+Alt+C';
+electron_1.app.commandLine.appendSwitch('enable-features', 'GlobalShortcutsPortal');
 const buildContentSecurityPolicy = () => [
     "default-src 'self'",
     "script-src 'self'",
@@ -49,6 +51,13 @@ const createWindow = () => {
         win.loadFile(path_1.default.join(__dirname, '../dist/index.html'));
     }
 };
+const sendCaptureScreenShortcut = () => {
+    const win = electron_1.BrowserWindow.getAllWindows()[0];
+    if (!win || win.isDestroyed()) {
+        return;
+    }
+    win.webContents.send('capture-screen-hotkey');
+};
 electron_1.ipcMain.handle('capture-screen', async () => {
     const primaryDisplay = electron_1.screen.getPrimaryDisplay();
     const targetWidth = Math.max(1280, Math.floor(primaryDisplay.size.width * 0.75));
@@ -66,11 +75,17 @@ electron_1.ipcMain.handle('capture-screen', async () => {
 electron_1.app.whenReady().then(() => {
     installContentSecurityPolicy();
     createWindow();
+    if (!electron_1.globalShortcut.register(CAPTURE_SCREEN_SHORTCUT, sendCaptureScreenShortcut)) {
+        console.warn(`Failed to register global shortcut: ${CAPTURE_SCREEN_SHORTCUT}`);
+    }
     electron_1.app.on('activate', () => {
         if (electron_1.BrowserWindow.getAllWindows().length === 0) {
             createWindow();
         }
     });
+});
+electron_1.app.on('will-quit', () => {
+    electron_1.globalShortcut.unregisterAll();
 });
 electron_1.app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {

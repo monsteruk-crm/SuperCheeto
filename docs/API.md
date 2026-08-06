@@ -94,6 +94,7 @@
 
 ## Audio mode notes
 - Backend discovers and broadcasts monitor (system-output) sources and microphone sources separately.
+- Source discovery prefers `pactl` when it is installed, and falls back to PipeWire-native `pw-dump` metadata when it is not.
 - Switching source or mode while running triggers an automatic capture restart that reuses the already-loaded Whisper model.
 - Backward compatibility is preserved for legacy clients that only consume `sources/defaultSource/selectedSource`.
 - `audio_level` events are emitted by always-on meter loops, so meters can update even when transcription is not running.

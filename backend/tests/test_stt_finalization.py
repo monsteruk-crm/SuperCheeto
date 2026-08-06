@@ -3,7 +3,7 @@ import unittest
 from app.stt import StreamingTranscriber
 
 
-def transcriber() -> StreamingTranscriber:
+def transcriber(language="en") -> StreamingTranscriber:
     async def on_live(_text: str, _timestamp: float) -> None:
         return None
 
@@ -16,7 +16,7 @@ def transcriber() -> StreamingTranscriber:
         device="cpu",
         compute_type="int8",
         vad_filter=False,
-        language="en",
+        language=language,
         min_decode_rms=0.0,
         no_vad_fallback_min_rms=0.0,
         partial_window=2.0,
@@ -30,6 +30,15 @@ def transcriber() -> StreamingTranscriber:
 
 
 class FinalTextDiffTests(unittest.TestCase):
+    def test_language_defaults_to_english_when_hint_is_missing(self) -> None:
+        stt = transcriber(language=None)
+
+        self.assertEqual(stt.language, "en")
+
+        stt.set_language(None)
+
+        self.assertEqual(stt.language, "en")
+
     def test_emits_full_text_for_first_final_window(self) -> None:
         stt = transcriber()
 

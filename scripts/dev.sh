@@ -321,6 +321,17 @@ print_logs() {
     fi
 }
 
+print_recent_backend_logs() {
+    local lines="${1:-20}"
+    echo
+    echo "== recent backend output (${BACKEND_LOG_FILE}) =="
+    if [[ -f "${BACKEND_LOG_FILE}" ]]; then
+        tail -n "${lines}" "${BACKEND_LOG_FILE}"
+    else
+        echo "No backend log yet."
+    fi
+}
+
 usage() {
     cat <<EOF
 Usage: scripts/dev.sh <command>
@@ -341,6 +352,7 @@ main() {
             start_backend
             start_frontend
             print_status
+            print_recent_backend_logs 20
             ;;
         stop)
             stop_frontend
@@ -352,6 +364,7 @@ main() {
             start_backend
             start_frontend
             print_status
+            print_recent_backend_logs 20
             ;;
         status)
             print_status

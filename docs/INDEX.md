@@ -10,7 +10,7 @@
 - [WebSocket and payload contracts](API.md)
 
 ## ADR index
-- [ADR index](adr/INDEX.md)
+- [ADR index](adr/INDEX.md) - includes the audio-discovery fallback decision
 
 ## Data / persistence
 - [DB index](db/INDEX.md)

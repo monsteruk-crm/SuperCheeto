@@ -8,7 +8,7 @@
 - Backend sends prompt responses back to frontend for display.
 
 ## Components and responsibilities
-- `backend/app/audio_capture.py`: monitor + microphone source discovery and PCM capture process management.
+- `backend/app/audio_capture.py`: monitor + microphone source discovery (Pulse `pactl` first, PipeWire `pw-dump` fallback) and PCM capture process management.
 - `backend/app/stt.py`: speech-to-text processing and live/final transcript generation.
 - `backend/app/transcript.py`: transcript segment storage and context window handling.
 - `backend/app/main.py`: active audio mode/source orchestration, runtime source switching, and source-tagged WS broadcasts.
@@ -22,7 +22,7 @@
 - `scripts/dev.sh`: local orchestration for backend/frontend process lifecycle.
 
 ## Runtime assumptions
-- Ubuntu/Linux environment with PulseAudio or PipeWire (Pulse shim) for monitor capture.
+- Ubuntu/Linux environment with PulseAudio or PipeWire (Pulse shim) for monitor capture; `pactl` is preferred but source discovery also works with PipeWire-native `pw-dump`.
 - Local Python 3.11+ environment for backend dependencies.
 - Node.js/npm environment for Electron + Vite frontend.
 - `OPENAI_API_KEY` set in environment or `backend/.env`.

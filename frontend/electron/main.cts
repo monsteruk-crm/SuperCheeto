@@ -1,7 +1,10 @@
-import { app, BrowserWindow, desktopCapturer, ipcMain, screen, session } from 'electron'
+import { app, BrowserWindow, desktopCapturer, globalShortcut, ipcMain, screen, session } from 'electron'
 import path from 'path'
 
 const isDev = () => Boolean(process.env.VITE_DEV_SERVER_URL || process.env.NODE_ENV === 'development')
+const CAPTURE_SCREEN_SHORTCUT = 'CommandOrControl+Alt+C'
+
+app.commandLine.appendSwitch('enable-features', 'GlobalShortcutsPortal')
 
 const buildContentSecurityPolicy = () =>
   [
@@ -50,6 +53,14 @@ const createWindow = () => {
   }
 }
 
+const sendCaptureScreenShortcut = () => {
+  const win = BrowserWindow.getAllWindows()[0]
+  if (!win || win.isDestroyed()) {
+    return
+  }
+  win.webContents.send('capture-screen-hotkey')
+}
+
 ipcMain.handle('capture-screen', async () => {
   const primaryDisplay = screen.getPrimaryDisplay()
   const targetWidth = Math.max(1280, Math.floor(primaryDisplay.size.width * 0.75))
@@ -67,12 +78,19 @@ ipcMain.handle('capture-screen', async () => {
 app.whenReady().then(() => {
   installContentSecurityPolicy()
   createWindow()
+  if (!globalShortcut.register(CAPTURE_SCREEN_SHORTCUT, sendCaptureScreenShortcut)) {
+    console.warn(`Failed to register global shortcut: ${CAPTURE_SCREEN_SHORTCUT}`)
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow()
     }
   })
+})
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll()
 })
 
 app.on('window-all-closed', () => {

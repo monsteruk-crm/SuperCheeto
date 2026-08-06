@@ -3,6 +3,11 @@
 ## What works end-to-end
 - Backend service runs via `python -m app.main` and serves WebSocket on `ws://127.0.0.1:8765`.
 - Frontend Electron app connects to backend and supports transcript selection + prompt execution.
+- Backend query failures are logged with stack traces, and `./scripts/dev.sh start` prints a recent backend log excerpt after startup.
+- The prompt area now surfaces the latest backend error inline, so failures are visible without opening the terminal.
+- OpenAI query execution now retries Chat Completions if the Responses API returns `404 Not Found`.
+- Deprecated OpenAI chat snapshot aliases such as `gpt-5.1-chat-latest` are remapped to durable API models such as `gpt-5.1`, and those stale aliases are hidden from the model picker.
+- Streamed query runs now set `stream: true` on Responses API payloads, restoring live token updates and final answer text for current models.
 - STT now defaults to CPU-safe settings for local runs, so machines without CUDA libraries do not fail trying to load `libcublas`.
 - The desk header is split into stacked vertical `Audio` and `AI` blocks, and the inline `Answer` action prefers the custom instruction when one is present.
 - The desk layout now renders `Response` on the left and `Transcript` on the right.
@@ -10,6 +15,8 @@
 - Electron renderer now skips CSP in local Vite dev to avoid black-screen/preamble failures, while packaged loads keep the stricter production CSP (still no `unsafe-eval`).
 - Production Electron renderer now loads built assets via relative paths (`./assets/...`) so `scripts/prod.sh start` does not hit a blank window from `file:///assets/...` lookups.
 - Local audio capture + streaming transcription pipeline is wired through backend modules.
+- Audio source discovery now falls back to PipeWire-native `pw-dump` metadata when `pactl` is missing, so minimal PipeWire installs can still enumerate monitor and mic sources.
+- Legacy STT finalization compatibility helper `_new_final_text` is restored, so the finalization unit test continues to cover rolling-window suffix behavior.
 - Transcript storage suppresses only near-immediate repeated final rows with at least three words, while preserving short repeated utterances.
 - STT finalization now diffs rolling-window decoded text against recently committed words and emits only the new suffix, avoiding shifted-timestamp duplicates and missing finalized rows.
 - Root launcher script `scripts/dev.sh` can start/stop/restart/status/logs for backend and frontend together, and now force-cleans lingering backend listeners and frontend dev processes when PID files are missing.
@@ -66,9 +73,19 @@
 ## Known issues / blockers
 - First startup fails if dependencies are missing in `backend/.venv` or `frontend/node_modules`; launcher does not auto-install deps.
   - Paths: `scripts/dev.sh`, `backend/requirements.txt`, `frontend/package.json`.
+- Query failures still depend on `OPENAI_API_KEY` and network access, but backend logs now show request/context details and the launcher surfaces the latest backend output immediately after `start`.
+  - Paths: `backend/app/main.py`, `scripts/dev.sh`.
+- Backend errors are now also rendered in the UI prompt area.
+  - Paths: `frontend/src/App.tsx`, `frontend/src/components/PromptBar.tsx`, `frontend/src/styles.css`.
+- Responses API access can vary by project/key; the backend now falls back to Chat Completions on `404`.
+  - Paths: `backend/app/openai_client.py`, `backend/README.md`.
+- The `/v1/models` list can still include deprecated aliases that now 404 at inference time; the backend filters/remaps those before advertising models to the UI or sending queries.
+  - Paths: `backend/app/openai_client.py`, `backend/app/main.py`.
+- If streamed Responses calls omit `stream: true`, the API returns non-SSE JSON and the parser falls through to `(No response text returned.)`; this is now fixed.
+  - Paths: `backend/app/openai_client.py`.
 - Frontend cleanup fallback matches the standard repo dev stack binaries (`concurrently`, `vite`, `tsc`, `wait-on`, `electron`); non-standard/custom frontend launch commands may still need manual stop.
   - Paths: `scripts/dev.sh`, `frontend/package.json`.
-- Audio routing can still require manual monitor selection in Ubuntu audio stack.
+- Audio routing can still require manual monitor selection in Ubuntu audio stack, but source discovery now works without `pactl` when `pw-dump` is available.
   - Paths: `backend/app/audio_capture.py`, `backend/README.md`.
 - If your microphone speech language is not English, default `STT_MIC_LANGUAGE=en` can reduce accuracy until overridden.
   - Paths: `backend/app/settings.py`, `backend/README.md`.
@@ -93,9 +110,14 @@
 1. Run `./scripts/dev.sh start`.
 2. Run `./scripts/dev.sh status` and confirm both services are running.
 3. Open the Electron UI and confirm backend connection state updates.
-4. In Settings, create multiple benchmark tests via CRUD, run a benchmark, and confirm history keeps prior runs.
-5. In Settings, ingest a CV path in `Local RAG Documents`, run `Answer the question`, and verify response references retrieved document details.
-6. Run `./scripts/dev.sh stop` and confirm both services stop cleanly.
-7. Run `cd backend && python -m app.eye_tracking_prototype`, confirm webcam window opens and gaze label updates while moving eyes.
-8. Run `cd frontend && npm run build` after UI styling changes.
-9. Run `cd backend && python -m unittest discover -s tests` after backend transcript changes.
+4. Trigger a failing query and confirm the backend error appears in the prompt area.
+5. Check the terminal for the recent backend log excerpt if you need the full server context; use `./scripts/dev.sh logs` for the full tail.
+6. If the project has no Responses access, confirm the same query still succeeds through the Chat Completions fallback.
+7. Select or persist a deprecated alias such as `gpt-5.1-chat-latest`, refresh models, and confirm the UI moves to the supported replacement model.
+8. Run a normal query and confirm the Response pane streams partial tokens and ends with a real answer instead of `(No response text returned.)`.
+9. In Settings, create multiple benchmark tests via CRUD, run a benchmark, and confirm history keeps prior runs.
+10. In Settings, ingest a CV path in `Local RAG Documents`, run `Answer the question`, and verify response references retrieved document details.
+11. Run `./scripts/dev.sh stop` and confirm both services stop cleanly.
+12. Run `cd backend && python -m app.eye_tracking_prototype`, confirm webcam window opens and gaze label updates while moving eyes.
+13. Run `cd frontend && npm run build` after UI styling changes.
+14. Run `cd backend && python -m unittest discover -s tests` after backend transcript changes.

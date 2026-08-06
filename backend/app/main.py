@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import re
 from dataclasses import dataclass
@@ -16,12 +17,14 @@ from dotenv import load_dotenv
 from .audio_capture import AudioCapture, discover_audio_sources
 from .benchmark_harness import BENCHMARK_HARNESS_PROMPT, build_benchmark_case_input
 from .model_pricing import estimate_cost_usd
-from .openai_client import OpenAIClient, preset_by_id
+from .openai_client import OpenAIClient, filter_supported_chat_models, normalize_model_id, preset_by_id
 from .rag_store import LocalRagStore
 from .settings import Settings
-from .stt import Segment, StreamingTranscriber
+from .stt import TRANSCRIPTION_LANGUAGE, Segment, StreamingTranscriber
 from .transcript import SelectionRange, TranscriptStore
 from .ws_server import WebSocketHub
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -74,13 +77,9 @@ class AppController:
         return normalized or None
 
     def _language_for_mode(self, mode: str) -> Optional[str]:
-        normalized_mode = self._normalize_audio_mode(mode)
-        global_language = self._normalize_language(self.settings.stt_language)
-        system_language = self._normalize_language(self.settings.stt_system_language)
-        mic_language = self._normalize_language(self.settings.stt_mic_language)
-        if normalized_mode == "mic":
-            return mic_language or global_language
-        return system_language or global_language
+        # Do not allow Whisper to auto-detect language: transient detections
+        # can briefly emit non-English text in the live transcript.
+        return TRANSCRIPTION_LANGUAGE
 
     @staticmethod
     def _resolve_source(
@@ -102,12 +101,14 @@ class AppController:
         await self.start_transcription()
 
     async def start(self) -> None:
+        logger.info("Starting backend WebSocket hub on %s:%s", self.settings.ws_host, self.settings.ws_port)
         await self.hub.start()
         await self._broadcast_audio_sources()
         await self._broadcast_rag_documents()
         await self.hub.broadcast("status", {"state": "ready", "details": "WebSocket ready"})
 
     async def stop(self) -> None:
+        logger.info("Stopping backend controller")
         await self.cancel_query({})
         await self.stop_transcription()
         await self._stop_meter_loop("system")
@@ -202,14 +203,17 @@ class AppController:
     async def rag_ingest(self, data: dict) -> None:
         raw_paths = data.get("paths")
         if not isinstance(raw_paths, list):
+            logger.warning("rag_ingest rejected: paths payload was not a list")
             await self.hub.broadcast("error", {"message": "rag_ingest requires a paths array."})
             return
         if not raw_paths:
+            logger.warning("rag_ingest rejected: paths payload was empty")
             await self.hub.broadcast("error", {"message": "rag_ingest received an empty paths array."})
             return
         try:
             report = await self._rag_store.ingest_paths(raw_paths, embed_texts=self._embed_texts)
         except Exception as exc:
+            logger.exception("RAG ingestion failed for paths=%s", raw_paths)
             await self.hub.broadcast("error", {"message": f"RAG ingestion failed: {exc}"})
             return
         await self.hub.broadcast(
@@ -391,16 +395,17 @@ class AppController:
 
     async def _broadcast_models(self) -> None:
         client = await self._ensure_openai_client()
+        normalized_default_model = normalize_model_id(self.settings.openai_model) or self.settings.openai_model
         if not client:
-            await self.hub.broadcast("models_list", {"models": [], "selectedModel": self.settings.openai_model})
+            await self.hub.broadcast("models_list", {"models": [], "selectedModel": normalized_default_model})
             return
         try:
-            models = await client.list_models()
+            models = filter_supported_chat_models(await client.list_models())
         except Exception:
-            models = [self.settings.openai_model]
-        if self.settings.openai_model and self.settings.openai_model not in models:
-            models.insert(0, self.settings.openai_model)
-        await self.hub.broadcast("models_list", {"models": models, "selectedModel": self.settings.openai_model})
+            models = [normalized_default_model]
+        if normalized_default_model and normalized_default_model not in models:
+            models.insert(0, normalized_default_model)
+        await self.hub.broadcast("models_list", {"models": models, "selectedModel": normalized_default_model})
 
     async def _broadcast_model_details(self) -> None:
         client = await self._ensure_openai_client()
@@ -569,6 +574,13 @@ class AppController:
         if self._query_task and not self._query_task.done():
             await self.cancel_query({"requestId": self._query_request_id or request_id})
         payload = {**data, "requestId": request_id}
+        logger.info(
+            "Queued query %s preset=%s model=%s selected_chars=%s",
+            request_id,
+            payload.get("presetId") or "custom",
+            (payload.get("model") or self.settings.openai_model),
+            len(str(payload.get("selectedText") or "")),
+        )
         self._query_request_id = request_id
         self._query_task = asyncio.create_task(self._run_query_worker(payload))
 
@@ -588,6 +600,7 @@ class AppController:
         try:
             selected_text = (data.get("selectedText") or "").strip()
             if not selected_text:
+                logger.warning("Query %s rejected: no selected text provided", request_id)
                 await self.hub.broadcast("error", {"message": "No selected text provided."})
                 return
             preset_id = data.get("presetId")
@@ -596,13 +609,15 @@ class AppController:
             if preset_id:
                 preset = preset_by_id(preset_id)
                 if not preset:
+                    logger.warning("Query %s rejected: unknown preset %s", request_id, preset_id)
                     await self.hub.broadcast("error", {"message": f"Unknown preset {preset_id}."})
                     return
                 instruction = preset.instruction
             if not instruction:
+                logger.warning("Query %s rejected: instruction missing", request_id)
                 await self.hub.broadcast("error", {"message": "Instruction missing."})
                 return
-            requested_model = (data.get("model") or "").strip() or self.settings.openai_model
+            requested_model = normalize_model_id((data.get("model") or "").strip()) or normalize_model_id(self.settings.openai_model) or self.settings.openai_model
             include_screenshot = bool(data.get("includeScreenshot"))
             screenshot_data_url = (data.get("screenshotDataUrl") or "").strip() or None
             if screenshot_data_url and not screenshot_data_url.startswith("data:image/"):
@@ -635,6 +650,7 @@ class AppController:
                         embed_texts=self._embed_texts,
                     )
                 except Exception as exc:
+                    logger.warning("Query %s RAG retrieval skipped: %s", request_id, exc)
                     await self.hub.broadcast("error", {"message": f"RAG retrieval skipped: {exc}"})
                     rag_chunks = []
             rag_context = "\n\n".join(
@@ -649,10 +665,12 @@ class AppController:
 
             client = await self._ensure_openai_client()
             if not client:
+                logger.warning("Query %s rejected: OPENAI_API_KEY missing", request_id)
                 await self.hub.broadcast("error", {"message": "OPENAI_API_KEY is missing."})
                 return
 
             query_started = True
+            logger.info("Query %s started", request_id)
             await self.hub.broadcast("query_state", {"running": True, "requestId": request_id})
             try:
                 result = await client.run_query(
@@ -668,11 +686,21 @@ class AppController:
                     ),
                 )
             except Exception as exc:
+                logger.exception("OpenAI request failed for query %s", request_id)
                 await self.hub.broadcast("query_state", {"running": False, "requestId": request_id})
                 await self.hub.broadcast("error", {"message": f"OpenAI request failed: {exc}"})
                 return
 
             await self.hub.broadcast("query_state", {"running": False, "requestId": request_id})
+            logger.info(
+                "Query %s completed latency_ms=%.1f tokens_in=%s tokens_out=%s rag_chunks=%s screenshot=%s",
+                request_id,
+                result.latency_ms,
+                result.input_tokens,
+                result.output_tokens,
+                len(rag_chunks),
+                bool(screenshot_data_url),
+            )
             await self.hub.broadcast(
                 "query_response",
                 {
@@ -687,6 +715,7 @@ class AppController:
             )
         except asyncio.CancelledError:
             if query_started:
+                logger.info("Query %s cancelled", request_id)
                 await self.hub.broadcast("query_state", {"running": False, "requestId": request_id, "cancelled": True})
             return
         finally:
@@ -1142,6 +1171,10 @@ class AppController:
 
 
 async def main() -> None:
+    logging.basicConfig(
+        level=os.getenv("LOG_LEVEL", "INFO").upper(),
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
     controller = AppController()
     await controller.start()
     try:

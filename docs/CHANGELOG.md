@@ -1,5 +1,52 @@
 # Changelog
 
+## 2026-08-04 (backend query logging + startup log excerpt)
+- User-visible:
+  - `./scripts/dev.sh start` now prints a recent backend log excerpt immediately after startup, so AI request failures are visible in the terminal flow.
+  - Query failures now include backend-side log lines with request context and stack traces when exceptions occur.
+  - The desktop UI now surfaces the latest backend error inline in the prompt area.
+  - The backend now falls back to Chat Completions if the Responses API returns `404 Not Found`.
+  - Deprecated model aliases such as `gpt-5.1-chat-latest` now auto-upgrade to supported API models instead of hard-failing with `model_not_found`.
+  - Streamed queries now return actual answer text again instead of falling through to `(No response text returned.)`.
+- Internal:
+  - Added standard Python logging configuration in `backend/app/main.py`.
+  - Logged query lifecycle events, validation rejections, RAG retrieval skips, and OpenAI request exceptions.
+  - Added a `scripts/dev.sh` startup log tail for the backend.
+  - Added an inline backend error banner to the Electron prompt bar.
+  - Added a Chat Completions fallback path in `backend/app/openai_client.py`.
+  - Added deprecated-model normalization/filtering in `backend/app/openai_client.py` and `backend/app/main.py`.
+  - Fixed Responses streaming payload construction to include `stream: true` for SSE runs.
+- How to test:
+  - `./scripts/dev.sh start`
+  - Trigger a failing query and confirm the backend log shows the request context and error details.
+  - Run `./scripts/dev.sh logs` and confirm the recent backend output is present.
+  - Trigger a failing query and confirm the backend error appears in the prompt area.
+  - If the project has Responses access disabled, confirm the same query still returns through Chat Completions.
+  - Select `gpt-5.1-chat-latest`, run a query, and confirm it succeeds through `gpt-5.1`.
+  - Run a normal query and confirm partial tokens stream in and the final response text is non-empty.
+
+## 2026-07-07 (STT compatibility helper + audio install docs)
+- User-visible:
+  - The backend test suite no longer trips over the missing rolling-window finalization helper.
+  - Audio setup docs now spell out the Ubuntu packages required for source discovery and routing.
+- Internal:
+  - Restored `StreamingTranscriber._new_final_text()` and wired it into final-segment emission.
+  - Added explicit package mapping for `pipewire-bin`, `wireplumber`, `pulseaudio-utils`, `pipewire-pulse`, and `pavucontrol` in the runbooks.
+- How to test:
+  - `cd backend && python -m unittest tests.test_stt_finalization`
+  - Check the README audio setup section for the install command and package mapping.
+
+## 2026-07-07 (PipeWire-native audio discovery fallback)
+- User-visible:
+  - Fresh PipeWire installs that do not include `pactl` can now still enumerate monitor and microphone sources.
+  - Audio startup no longer hard-fails solely because `pulseaudio-utils` is missing.
+- Internal:
+  - `discover_audio_sources()` now prefers `pactl` but falls back to parsing `pw-dump` node metadata when needed.
+  - Added backend unit tests for `pw-dump` parsing and the fallback discovery path.
+- How to test:
+  - `cd backend && python -m unittest tests.test_audio_capture`
+  - On a PipeWire machine without `pactl`, start the backend and confirm the source dropdowns still populate.
+
 ## 2026-05-18 (frontend live transcript duplicate fix)
 - User-visible:
   - Removed accumulated live partial rows from the transcript history; the pane now shows final rows plus one current `LIVE` preview.

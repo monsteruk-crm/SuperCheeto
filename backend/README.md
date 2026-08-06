@@ -16,6 +16,11 @@ cd backend
 python -m app.main
 ```
 
+The backend logs query lifecycle events and failures through the standard Python logger, which the launcher captures into `.run/backend.log`.
+If the Responses API returns `404`, the backend falls back to Chat Completions for the same query so older project/key permissions do not hard-fail the app.
+Deprecated ChatGPT snapshot aliases such as `gpt-5.1-chat-latest` are normalized to durable API model ids such as `gpt-5.1`.
+Streamed Responses API calls explicitly set `stream: true`; without that flag the API returns a plain JSON body and the SSE parser sees no output events.
+
 ## Test
 ```bash
 cd backend
@@ -45,25 +50,36 @@ The prototype shows a live webcam overlay with coarse gaze direction labels (`le
   - `STT_MODEL` (e.g. `base`, `small`)
   - `STT_DEVICE` (`cpu` default, or `cuda` when the CUDA runtime is installed), `STT_COMPUTE_TYPE` (`int8` for CPU, `float16` for CUDA)
   - `STT_VAD_FILTER` (`false` default; set `true` to suppress non-speech background)
-  - `STT_MIC_LANGUAGE` (default `en`; stabilizes mic transcription for accented English)
-  - `STT_SYSTEM_LANGUAGE` (default auto-detect for system audio)
-  - `STT_LANGUAGE` (global fallback when mode-specific language is unset)
+  - Speech transcription is forced to English (`en`) for both microphone and system audio; Whisper auto-detection is disabled.
   - `STT_MIN_DECODE_RMS` (default `0.0010`; skips decoding on near-silent windows to reduce hallucinations)
   - `STT_NO_VAD_FALLBACK_MIN_RMS` (default `0.0025`; blocks no-VAD fallback on very low-energy windows)
   - `RAG_DB_PATH` (SQLite path for local vector DB, default `backend/data/rag.sqlite`)
   - `RAG_EMBEDDING_MODEL` (default `text-embedding-3-small`)
   - `RAG_TOP_K` (number of retrieved chunks injected into each query context)
-  - `RAG_CHUNK_SIZE_CHARS`, `RAG_CHUNK_OVERLAP_CHARS` (ingest chunking strategy)
+- `RAG_CHUNK_SIZE_CHARS`, `RAG_CHUNK_OVERLAP_CHARS` (ingest chunking strategy)
+- Query execution prefers the Responses API, then falls back to Chat Completions if the Responses endpoint returns `404 Not Found`.
+- Deprecated `*-chat-latest` aliases are remapped before query execution so stale UI selections do not keep hitting removed model ids.
+- Streamed Responses API requests set `stream: true` so the backend receives `response.output_text.delta` events and final completion state.
 
 ## Audio Notes (Ubuntu)
 - Requires PulseAudio or PipeWire with Pulse shim.
+- Install the audio stack and CLI tools with:
+  ```bash
+  sudo apt install -y pipewire pipewire-bin pipewire-pulse wireplumber pulseaudio-utils pavucontrol
+  ```
+- Package mapping:
+  - `pipewire-bin` provides `pw-cat` and `pw-dump`
+  - `wireplumber` provides `wpctl`
+  - `pulseaudio-utils` provides `pactl`
+  - `pipewire-pulse` provides the Pulse shim used by `pactl`-style discovery on PipeWire
+- Source discovery prefers `pactl` when available, but falls back to PipeWire-native `pw-dump` metadata on minimal installs that do not include `pulseaudio-utils`.
 - If routing is incorrect, install and run `pavucontrol` (`sudo apt install -y pavucontrol`) and switch the backend recording stream to a `Monitor of ...` source in the **Recording** tab.
 - Startup source selection priority:
   1. `set_audio_mode` + `set_audio_source` / `set_mic_source` WebSocket messages from UI/client
   2. `AUDIO_SOURCE` / `AUDIO_MIC_SOURCE` in environment
   3. Active browser/media sink input monitor (for system mode)
-  4. Default sink monitor and default source from `pactl info`
-- If no monitor/mic sources are found, select one manually in the UI or pass it via WebSocket.
+  4. Default sink monitor and default source from `pactl info`, or PipeWire-native fallback discovery when `pactl` is unavailable
+- If no monitor/mic sources are found, select one manually in the UI or pass it via WebSocket. On a fresh PipeWire install, source enumeration should still work without `pactl` as long as `pw-dump` is available and the audio server is running.
 
 ## Local RAG ingestion
 - In Settings, use **Local RAG Documents** to ingest file/folder paths.

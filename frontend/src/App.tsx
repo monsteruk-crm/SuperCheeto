@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import PromptBar from './components/PromptBar'
 import TranscriptPane from './components/TranscriptPane'
 import OutputPane from './components/OutputPane'
@@ -251,6 +251,7 @@ const App: React.FC = () => {
   const [output, setOutput] = useState('')
   const [isQuerying, setIsQuerying] = useState(false)
   const [status, setStatus] = useState('Connecting…')
+  const [backendError, setBackendError] = useState<string | null>(null)
   const [isRunning, setIsRunning] = useState(false)
   const [audioMode, setAudioMode] = useState<AudioStreamKind>(storedUiPreferences.audioMode || 'system')
   const [systemAudioLevel, setSystemAudioLevel] = useState(0)
@@ -303,6 +304,9 @@ const App: React.FC = () => {
           setStatus(`${payload.state}: ${payload.details}`)
         } else {
           setStatus(payload.state)
+        }
+        if (payload.state === 'connected' || payload.state === 'ready' || payload.state === 'transcribing' || payload.state === 'stopped') {
+          setBackendError(null)
         }
         if (payload.state === 'transcribing') {
           setIsRunning(true)
@@ -432,6 +436,7 @@ const App: React.FC = () => {
       onQueryState: (payload) => {
         const requestId = payload.requestId || activeQueryRequestIdRef.current
         if (payload.running) {
+          setBackendError(null)
           setIsQuerying(true)
           if (requestId) {
             activeQueryRequestIdRef.current = requestId
@@ -462,6 +467,7 @@ const App: React.FC = () => {
         if (requestId && activeQueryRequestIdRef.current && requestId !== activeQueryRequestIdRef.current) {
           return
         }
+        setBackendError(null)
         setIsQuerying(false)
         activeQueryRequestIdRef.current = null
         setActiveQueryRequestId(null)
@@ -582,6 +588,7 @@ const App: React.FC = () => {
         setBenchmarkProgress(null)
         setActiveBenchmarkId(null)
         activeBenchmarkIdRef.current = null
+        setBackendError(payload.message)
         setStatus(`error: ${payload.message}`)
       }
     })
@@ -772,7 +779,7 @@ const App: React.FC = () => {
     changeAudioMode(audioMode === 'mic' ? 'system' : 'mic')
   }
 
-  const captureScreen = async () => {
+  const captureScreen = useCallback(async () => {
     try {
       const dataUrl = await window.electronAPI?.captureScreen?.()
       if (dataUrl) {
@@ -784,7 +791,14 @@ const App: React.FC = () => {
     } catch (err) {
       setStatus(`error: failed to capture screen: ${String(err)}`)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    const unsubscribe = window.electronAPI?.onCaptureScreenShortcut?.(() => {
+      void captureScreen()
+    })
+    return unsubscribe
+  }, [captureScreen])
 
   const runBenchmark = (payload: { models: string[]; instruction: string; tests: BenchmarkCaseInput[]; repeats: number }) => {
     const benchmarkId = crypto.randomUUID()
@@ -834,6 +848,7 @@ const App: React.FC = () => {
             canRun={canRun}
             isQuerying={isQuerying}
             status={status}
+            backendError={backendError}
             isRunning={isRunning}
             audioMode={audioMode}
             onAudioModeChange={changeAudioMode}

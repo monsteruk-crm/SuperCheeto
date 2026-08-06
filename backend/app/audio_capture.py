@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import shutil
 import subprocess
 from dataclasses import dataclass
@@ -29,10 +30,18 @@ def get_default_sink() -> Optional[str]:
     try:
         output = _run_command(["pactl", "info"])
     except Exception:
-        return None
-    for line in output.splitlines():
-        if line.strip().startswith("Default Sink:"):
-            return line.split(":", 1)[1].strip() or None
+        output = None
+    if output:
+        for line in output.splitlines():
+            if line.strip().startswith("Default Sink:"):
+                return line.split(":", 1)[1].strip() or None
+    if shutil.which("pw-dump"):
+        try:
+            output = _run_command(["pw-dump"])
+        except Exception:
+            return None
+        sinks, _monitor_sources, _mic_sources = _parse_pw_dump_audio_nodes(output)
+        return sinks[0] if sinks else None
     return None
 
 
@@ -40,43 +49,74 @@ def get_default_source() -> Optional[str]:
     try:
         output = _run_command(["pactl", "info"])
     except Exception:
-        return None
-    for line in output.splitlines():
-        if line.strip().startswith("Default Source:"):
-            return line.split(":", 1)[1].strip() or None
+        output = None
+    if output:
+        for line in output.splitlines():
+            if line.strip().startswith("Default Source:"):
+                return line.split(":", 1)[1].strip() or None
+    if shutil.which("pw-dump"):
+        try:
+            output = _run_command(["pw-dump"])
+        except Exception:
+            return None
+        _sinks, _monitor_sources, mic_sources = _parse_pw_dump_audio_nodes(output)
+        return mic_sources[0] if mic_sources else None
     return None
+
+
+def _parse_short_sources(output: str) -> tuple[List[str], List[str]]:
+    monitor_sources: List[str] = []
+    mic_sources: List[str] = []
+    for line in output.splitlines():
+        parts = line.split("\t")
+        if len(parts) < 2:
+            continue
+        name = parts[1].strip()
+        if not name:
+            continue
+        if ".monitor" in name:
+            monitor_sources.append(name)
+        else:
+            mic_sources.append(name)
+    return monitor_sources, mic_sources
 
 
 def list_monitor_sources() -> List[str]:
     try:
         output = _run_command(["pactl", "list", "short", "sources"])
     except Exception:
-        return []
-    sources = []
-    for line in output.splitlines():
-        parts = line.split("\t")
-        if len(parts) >= 2:
-            name = parts[1]
-            if ".monitor" in name:
-                sources.append(name)
-    return sources
+        output = None
+    if output:
+        monitor_sources, _mic_sources = _parse_short_sources(output)
+        if monitor_sources:
+            return monitor_sources
+    if shutil.which("pw-dump"):
+        try:
+            output = _run_command(["pw-dump"])
+        except Exception:
+            return []
+        _sinks, monitor_sources, _mic_sources = _parse_pw_dump_audio_nodes(output)
+        return monitor_sources
+    return []
 
 
 def list_mic_sources() -> List[str]:
     try:
         output = _run_command(["pactl", "list", "short", "sources"])
     except Exception:
-        return []
-    sources = []
-    for line in output.splitlines():
-        parts = line.split("\t")
-        if len(parts) < 2:
-            continue
-        name = parts[1]
-        if ".monitor" in name:
-            continue
-        sources.append(name)
-    return sources
+        output = None
+    if output:
+        _monitor_sources, mic_sources = _parse_short_sources(output)
+        if mic_sources:
+            return mic_sources
+    if shutil.which("pw-dump"):
+        try:
+            output = _run_command(["pw-dump"])
+        except Exception:
+            return []
+        _sinks, _monitor_sources, mic_sources = _parse_pw_dump_audio_nodes(output)
+        return mic_sources
+    return []
 
 
 def _list_sinks_by_index() -> Dict[str, str]:
@@ -98,6 +138,39 @@ def _extract_prop_value(line: str) -> Optional[str]:
     _, value = line.split("=", 1)
     value = value.strip().strip('"')
     return value or None
+
+
+def _parse_pw_dump_audio_nodes(output: str) -> tuple[List[str], List[str], List[str]]:
+    sinks: List[str] = []
+    monitor_sources: List[str] = []
+    mic_sources: List[str] = []
+    try:
+        objects = json.loads(output)
+    except Exception:
+        return sinks, monitor_sources, mic_sources
+    if not isinstance(objects, list):
+        return sinks, monitor_sources, mic_sources
+    for obj in objects:
+        if not isinstance(obj, dict):
+            continue
+        info = obj.get("info")
+        if not isinstance(info, dict):
+            continue
+        props = info.get("props")
+        if not isinstance(props, dict):
+            props = obj.get("props") if isinstance(obj.get("props"), dict) else {}
+        node_name = props.get("node.name")
+        media_class = str(props.get("media.class") or "")
+        if not isinstance(node_name, str) or not node_name:
+            continue
+        if media_class.startswith("Audio/Sink"):
+            sinks.append(node_name)
+        elif media_class.startswith("Audio/Source"):
+            if ".monitor" in node_name:
+                monitor_sources.append(node_name)
+            else:
+                mic_sources.append(node_name)
+    return sinks, monitor_sources, mic_sources
 
 
 def get_active_browser_sink() -> Optional[str]:
@@ -145,13 +218,14 @@ def get_active_browser_sink() -> Optional[str]:
     return pick_from_current()
 
 
-def discover_audio_sources() -> AudioSourceInfo:
-    default_sink = get_default_sink()
-    default_source = get_default_source()
+def _build_audio_source_info(
+    default_sink: Optional[str],
+    default_source: Optional[str],
+    monitor_sources: List[str],
+    mic_sources: List[str],
+    browser_sink: Optional[str] = None,
+) -> AudioSourceInfo:
     default_monitor = f"{default_sink}.monitor" if default_sink else None
-    monitor_sources = list_monitor_sources()
-    mic_sources = list_mic_sources()
-    browser_sink = get_active_browser_sink()
     browser_monitor = f"{browser_sink}.monitor" if browser_sink else None
     preferred_monitor = browser_monitor if browser_monitor in monitor_sources else None
     if not preferred_monitor and default_monitor in monitor_sources:
@@ -169,6 +243,70 @@ def discover_audio_sources() -> AudioSourceInfo:
         preferred_mic=preferred_mic,
         monitor_sources=monitor_sources,
         mic_sources=mic_sources,
+    )
+
+
+def _discover_audio_sources_from_pactl() -> AudioSourceInfo:
+    default_sink = get_default_sink()
+    default_source = get_default_source()
+    monitor_sources = list_monitor_sources()
+    mic_sources = list_mic_sources()
+    browser_sink = get_active_browser_sink()
+    return _build_audio_source_info(
+        default_sink=default_sink,
+        default_source=default_source,
+        monitor_sources=monitor_sources,
+        mic_sources=mic_sources,
+        browser_sink=browser_sink,
+    )
+
+
+def _discover_audio_sources_from_pw_dump() -> AudioSourceInfo:
+    try:
+        output = _run_command(["pw-dump"])
+    except Exception:
+        return AudioSourceInfo(
+            default_sink=None,
+            default_source=None,
+            default_monitor=None,
+            preferred_monitor=None,
+            preferred_mic=None,
+            monitor_sources=[],
+            mic_sources=[],
+        )
+    sinks, monitor_sources, mic_sources = _parse_pw_dump_audio_nodes(output)
+    return _build_audio_source_info(
+        default_sink=sinks[0] if sinks else None,
+        default_source=mic_sources[0] if mic_sources else None,
+        monitor_sources=monitor_sources,
+        mic_sources=mic_sources,
+    )
+
+
+def discover_audio_sources() -> AudioSourceInfo:
+    pactl_available = shutil.which("pactl") is not None
+    pw_dump_available = shutil.which("pw-dump") is not None
+
+    if pactl_available:
+        pactl_sources = _discover_audio_sources_from_pactl()
+        if pactl_sources.monitor_sources or pactl_sources.mic_sources:
+            return pactl_sources
+    if pw_dump_available:
+        pw_sources = _discover_audio_sources_from_pw_dump()
+        if pw_sources.monitor_sources or pw_sources.mic_sources:
+            return pw_sources
+    if pactl_available:
+        return _discover_audio_sources_from_pactl()
+    if pw_dump_available:
+        return _discover_audio_sources_from_pw_dump()
+    return AudioSourceInfo(
+        default_sink=None,
+        default_source=None,
+        default_monitor=None,
+        preferred_monitor=None,
+        preferred_mic=None,
+        monitor_sources=[],
+        mic_sources=[],
     )
 
 

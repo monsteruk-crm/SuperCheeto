@@ -49,12 +49,39 @@ PRESET_PROMPTS: List[PresetPrompt] = [
     ),
 ]
 
+DEPRECATED_MODEL_REPLACEMENTS: Dict[str, str] = {
+    # Official docs now show this ChatGPT snapshot as deprecated; the durable API model still works.
+    "gpt-5.1-chat-latest": "gpt-5.1",
+    # Official deprecations page recommends GPT-5.6 Sol for these removed chat snapshots.
+    "gpt-5.2-chat-latest": "gpt-5.6-sol",
+    "gpt-5.3-chat-latest": "gpt-5.6-sol",
+}
+
 
 def preset_by_id(preset_id: str) -> Optional[PresetPrompt]:
     for preset in PRESET_PROMPTS:
         if preset.id == preset_id:
             return preset
     return None
+
+
+def normalize_model_id(model_id: Optional[str]) -> Optional[str]:
+    normalized = (model_id or "").strip()
+    if not normalized:
+        return None
+    return DEPRECATED_MODEL_REPLACEMENTS.get(normalized, normalized)
+
+
+def filter_supported_chat_models(models: Sequence[str]) -> List[str]:
+    filtered: List[str] = []
+    seen: set[str] = set()
+    for raw_model in models:
+        normalized = normalize_model_id(raw_model)
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        filtered.append(normalized)
+    return filtered
 
 
 class OpenAIClient:
@@ -81,28 +108,43 @@ class OpenAIClient:
         on_stream_delta: Optional[Callable[[str], Awaitable[None] | None]] = None,
     ) -> QueryResult:
         prompt = self._build_prompt(selected_text, context_text)
-        if screenshot_data_url:
-            input_payload = [
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "input_text", "text": prompt},
-                        {"type": "input_image", "image_url": screenshot_data_url},
-                    ],
-                }
-            ]
-        else:
-            input_payload = prompt
-        payload = {
-            "model": model or self.default_model,
-            "instructions": instruction,
-            "input": input_payload,
-        }
+        model_id = normalize_model_id(model) or normalize_model_id(self.default_model) or self.default_model
         if stream:
-            payload["stream"] = True
-            data, first_token_latency_ms = await self._run_streaming(payload, on_stream_delta=on_stream_delta)
+            try:
+                data, first_token_latency_ms = await self._run_responses_streaming(
+                    model_id=model_id,
+                    instruction=instruction,
+                    prompt=prompt,
+                    screenshot_data_url=screenshot_data_url,
+                    on_stream_delta=on_stream_delta,
+                )
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code != 404:
+                    raise
+                data, first_token_latency_ms = await self._run_chat_completions_streaming(
+                    model_id=model_id,
+                    instruction=instruction,
+                    prompt=prompt,
+                    screenshot_data_url=screenshot_data_url,
+                    on_stream_delta=on_stream_delta,
+                )
         else:
-            data = await self._run_non_streaming(payload)
+            try:
+                data = await self._run_responses_non_streaming(
+                    model_id=model_id,
+                    instruction=instruction,
+                    prompt=prompt,
+                    screenshot_data_url=screenshot_data_url,
+                )
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code != 404:
+                    raise
+                data = await self._run_chat_completions_non_streaming(
+                    model_id=model_id,
+                    instruction=instruction,
+                    prompt=prompt,
+                    screenshot_data_url=screenshot_data_url,
+                )
             first_token_latency_ms = None
         latency_ms = float(data.get("_latency_ms", 0.0))
         usage = extract_usage(data)
@@ -115,7 +157,20 @@ class OpenAIClient:
             total_tokens=usage.get("total_tokens"),
         )
 
-    async def _run_non_streaming(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+    async def _run_responses_non_streaming(
+        self,
+        model_id: str,
+        instruction: str,
+        prompt: str,
+        screenshot_data_url: Optional[str],
+    ) -> Dict[str, Any]:
+        payload = self._build_responses_payload(
+            model_id=model_id,
+            instruction=instruction,
+            prompt=prompt,
+            screenshot_data_url=screenshot_data_url,
+            stream=False,
+        )
         started = perf_counter()
         response = await self._client.post("/responses", json=payload)
         latency_ms = (perf_counter() - started) * 1000.0
@@ -124,11 +179,21 @@ class OpenAIClient:
         data["_latency_ms"] = latency_ms
         return data
 
-    async def _run_streaming(
+    async def _run_responses_streaming(
         self,
-        payload: Dict[str, Any],
+        model_id: str,
+        instruction: str,
+        prompt: str,
+        screenshot_data_url: Optional[str],
         on_stream_delta: Optional[Callable[[str], Awaitable[None] | None]] = None,
     ) -> tuple[Dict[str, Any], Optional[float]]:
+        payload = self._build_responses_payload(
+            model_id=model_id,
+            instruction=instruction,
+            prompt=prompt,
+            screenshot_data_url=screenshot_data_url,
+            stream=True,
+        )
         started = perf_counter()
         first_token_latency_ms: Optional[float] = None
         final_response: Dict[str, Any] = {}
@@ -186,6 +251,151 @@ class OpenAIClient:
             data["usage"] = latest_usage
         data["_latency_ms"] = latency_ms
         return data, first_token_latency_ms
+
+    async def _run_chat_completions_non_streaming(
+        self,
+        model_id: str,
+        instruction: str,
+        prompt: str,
+        screenshot_data_url: Optional[str],
+    ) -> Dict[str, Any]:
+        payload = self._build_chat_completions_payload(
+            model_id=model_id,
+            instruction=instruction,
+            prompt=prompt,
+            screenshot_data_url=screenshot_data_url,
+            stream=False,
+        )
+        started = perf_counter()
+        response = await self._client.post("/chat/completions", json=payload)
+        latency_ms = (perf_counter() - started) * 1000.0
+        response.raise_for_status()
+        data = response.json()
+        data["_latency_ms"] = latency_ms
+        return data
+
+    async def _run_chat_completions_streaming(
+        self,
+        model_id: str,
+        instruction: str,
+        prompt: str,
+        screenshot_data_url: Optional[str],
+        on_stream_delta: Optional[Callable[[str], Awaitable[None] | None]] = None,
+    ) -> tuple[Dict[str, Any], Optional[float]]:
+        payload = self._build_chat_completions_payload(
+            model_id=model_id,
+            instruction=instruction,
+            prompt=prompt,
+            screenshot_data_url=screenshot_data_url,
+            stream=True,
+        )
+        started = perf_counter()
+        first_token_latency_ms: Optional[float] = None
+        final_response: Dict[str, Any] = {}
+        output_chunks: List[str] = []
+        latest_usage: Dict[str, Any] = {}
+
+        async with self._client.stream("POST", "/chat/completions", json=payload) as response:
+            response.raise_for_status()
+            async for raw_line in response.aiter_lines():
+                if not raw_line:
+                    continue
+                line = raw_line.strip()
+                if not line.startswith("data:"):
+                    continue
+                data_line = line[5:].strip()
+                if not data_line or data_line == "[DONE]":
+                    continue
+                try:
+                    event = json.loads(data_line)
+                except json.JSONDecodeError:
+                    continue
+                choices = event.get("choices", [])
+                if isinstance(choices, list) and choices:
+                    choice = choices[0] if isinstance(choices[0], dict) else None
+                    if choice:
+                        delta = choice.get("delta", {})
+                        if isinstance(delta, dict):
+                            content = delta.get("content")
+                            if isinstance(content, str) and content:
+                                if first_token_latency_ms is None:
+                                    first_token_latency_ms = (perf_counter() - started) * 1000.0
+                                output_chunks.append(content)
+                                await _maybe_await(on_stream_delta, content)
+                        message = choice.get("message", {})
+                        if isinstance(message, dict) and message.get("content") and not output_chunks:
+                            content = message.get("content")
+                            if isinstance(content, str) and content:
+                                if first_token_latency_ms is None:
+                                    first_token_latency_ms = (perf_counter() - started) * 1000.0
+                                output_chunks.append(content)
+                                await _maybe_await(on_stream_delta, content)
+                usage = event.get("usage")
+                if isinstance(usage, dict):
+                    latest_usage = usage
+                if event.get("id") or event.get("object"):
+                    final_response = event
+
+        latency_ms = (perf_counter() - started) * 1000.0
+        data = dict(final_response) if final_response else {}
+        if "output_text" not in data and output_chunks:
+            data["output_text"] = "".join(output_chunks).strip()
+        if "usage" not in data and latest_usage:
+            data["usage"] = latest_usage
+        data["_latency_ms"] = latency_ms
+        return data, first_token_latency_ms
+
+    @staticmethod
+    def _build_responses_payload(
+        model_id: str,
+        instruction: str,
+        prompt: str,
+        screenshot_data_url: Optional[str],
+        stream: bool = False,
+    ) -> Dict[str, Any]:
+        if screenshot_data_url:
+            input_payload = [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "input_text", "text": prompt},
+                        {"type": "input_image", "image_url": screenshot_data_url},
+                    ],
+                }
+            ]
+        else:
+            input_payload = prompt
+        return {
+            "model": model_id,
+            "instructions": instruction,
+            "input": input_payload,
+            "stream": stream,
+        }
+
+    @staticmethod
+    def _build_chat_completions_payload(
+        model_id: str,
+        instruction: str,
+        prompt: str,
+        screenshot_data_url: Optional[str],
+        stream: bool,
+    ) -> Dict[str, Any]:
+        if screenshot_data_url:
+            user_content: Any = [
+                {"type": "text", "text": prompt},
+                {"type": "image_url", "image_url": {"url": screenshot_data_url}},
+            ]
+        else:
+            user_content = prompt
+        payload: Dict[str, Any] = {
+            "model": model_id,
+            "messages": [
+                {"role": "developer", "content": instruction},
+                {"role": "user", "content": user_content},
+            ],
+            "stream": stream,
+        }
+        return payload
 
     async def list_models(self) -> List[str]:
         response = await self._client.get("/models")
@@ -253,6 +463,26 @@ class OpenAIClient:
 def extract_output_text(data: Dict) -> str:
     if "output_text" in data and data["output_text"]:
         return str(data["output_text"]).strip()
+    choices = data.get("choices", [])
+    if isinstance(choices, list) and choices:
+        first_choice = choices[0] if isinstance(choices[0], dict) else None
+        if first_choice:
+            message = first_choice.get("message")
+            if isinstance(message, dict):
+                content = message.get("content")
+                if isinstance(content, str) and content.strip():
+                    return content.strip()
+                if isinstance(content, list):
+                    parts: List[str] = []
+                    for item in content:
+                        if not isinstance(item, dict):
+                            continue
+                        if item.get("type") in {"text", "output_text"}:
+                            text = item.get("text", "")
+                            if text:
+                                parts.append(text)
+                    if parts:
+                        return "".join(parts).strip()
     output = data.get("output", [])
     parts: List[str] = []
     for item in output:

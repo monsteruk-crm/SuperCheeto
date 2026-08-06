@@ -8,3 +8,4 @@
 - [ADR 0006: Speed-First Aggregate Score and TTC Benchmark Field](0006-speed-first-aggregate-score-and-ttc.md)
 - [ADR 0007: Dual Audio Mode (System Monitor + Microphone)](0007-dual-audio-mode-system-and-mic.md)
 - [ADR 0008: Local RAG with SQLite Vector Store](0008-local-rag-sqlite-vector-store.md)
+- [ADR 0009: PipeWire-Native Audio Discovery Fallback](0009-pipewire-native-audio-discovery-fallback.md)
