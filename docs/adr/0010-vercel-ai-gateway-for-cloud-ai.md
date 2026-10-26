@@ -21,7 +21,7 @@ Use Vercel AI Gateway's OpenAI-compatible REST API via the existing `httpx` asyn
 
 **Base URL**: `https://ai-gateway.vercel.sh/v1` (configurable via `AI_GATEWAY_BASE_URL`).
 
-**Model IDs**: 
+**Model IDs**:
 - Original default language model: `VERCEL_MODEL` (`openai/gpt-5.6-sol` at acceptance; the fresh-install default is superseded by [ADR 0013](0013-stream-transcript-text-answers.md), with explicit overrides preserved).
 - Default embedding model: `openai/text-embedding-3-small`
 - Old bare IDs like `gpt-5.1` are normalized to `openai/gpt-5.1`
