@@ -95,6 +95,7 @@ class FilterLanguageModelsTests(unittest.TestCase):
             {"id": "openai/text-embedding-3-small", "type": "embedding"},
             {"id": "openai/dall-e-3", "type": "image"},
             {"id": "openai/sora", "type": "video"},
+            {"id": "google/gemini-3.8-live-extended-thinking", "type": "realtime"},
         ]
         result = filter_supported_language_models(models)
         self.assertEqual(result, ["openai/gpt-5.6-sol"])
@@ -150,11 +151,10 @@ class StreamingQueryTests(unittest.TestCase):
             json.dumps({"type": "response.output_text.done", "text": ""}),
             json.dumps({
                 "type": "response.completed",
-                "response": {"id": "resp_1", "output_text": "Hello world"},
+                "response": {"id": "resp_1", "output_text": "Hello world", "usage": {"input_tokens": 8, "output_tokens": 2, "total_tokens": 10}},
             }),
-            json.dumps({"type": "usage", "usage": {"input_tokens": 8, "output_tokens": 2, "total_tokens": 10}}),
         ]
-        sse_body = "\n".join(f"data: {line}" for line in sse_events)
+        sse_body = "".join(f"data: {line}\n\n" for line in sse_events)
         transport = _StreamingTransport(sse_body)
         client = AIGatewayClient(
             api_key="test-key",

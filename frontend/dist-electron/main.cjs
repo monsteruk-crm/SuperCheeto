@@ -42,6 +42,21 @@ const createWindow = () => {
             nodeIntegration: false
         }
     });
+    // Markdown links open in the external browser; they never navigate a renderer
+    // that has the screenshot preload bridge.
+    win.webContents.setWindowOpenHandler(({ url }) => {
+        try {
+            const parsed = new URL(url);
+            if (parsed.protocol === 'https:' || parsed.protocol === 'http:')
+                void electron_1.shell.openExternal(parsed.toString());
+        }
+        catch { /* reject malformed links */ }
+        return { action: 'deny' };
+    });
+    win.webContents.on('will-navigate', (event, url) => {
+        if (url !== win.webContents.getURL())
+            event.preventDefault();
+    });
     const devUrl = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173';
     if (isDev()) {
         win.loadURL(devUrl);

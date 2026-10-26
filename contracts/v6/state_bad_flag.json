@@ -1,0 +1,25 @@
+{
+  "name": "state_bad_flag",
+  "payload": {
+    "protocolVersion": 6,
+    "backendInstanceId": "backend-1",
+    "sessionEpoch": 1,
+    "connectionId": "owner-1",
+    "commandId": null,
+    "type": "assistance_state",
+    "stateSeq": 1,
+    "autoArmed": "yes",
+    "pauseReason": "ready",
+    "lastError": null,
+    "listening": true,
+    "detectionEnabled": true,
+    "holdReasons": [],
+    "configRevision": 1,
+    "configurationReady": true,
+    "generationBusy": false,
+    "activeAnswerId": null,
+    "pendingCandidate": null,
+    "deferredAnswerId": null
+  },
+  "expectedCode": "invalid_payload"
+}

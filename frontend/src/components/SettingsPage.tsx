@@ -537,10 +537,10 @@ const SettingsPage: React.FC<Props> = ({
               Ingest one or more absolute paths (files or folders). Supported: `.txt`, `.md`, `.pdf`, `.docx`.
             </p>
             <div className="input-wrap">
-              <label>Paths (comma-separated)</label>
+              <label htmlFor="settings-ragPathInput">Paths (comma-separated)</label>
               <textarea
                 rows={3}
-                value={ragPathInput}
+                id="settings-ragPathInput" value={ragPathInput}
                 onChange={(event) => setRagPathInput(event.target.value)}
                 placeholder="/home/you/Documents/CV.pdf, /home/you/Documents/notes/"
               />
@@ -634,10 +634,10 @@ const SettingsPage: React.FC<Props> = ({
           </header>
           <div className="settings-body">
             <div className="input-wrap">
-              <label>Harness Instruction</label>
+              <label htmlFor="settings-instruction">Harness Instruction</label>
               <textarea
                 rows={14}
-                value={instruction}
+                id="settings-instruction" value={instruction}
                 onChange={(event) => setInstruction(event.target.value)}
               />
             </div>
@@ -646,13 +646,13 @@ const SettingsPage: React.FC<Props> = ({
               <p className="muted">Upload once, then assign image refs to tests (for example: IMAGE_1).</p>
               <div className="benchmark-image-upload">
                 <div className="input-wrap small-input">
-                  <label>Image Ref Id</label>
-                  <input value={imageRefInput} onChange={(event) => setImageRefInput(event.target.value)} />
+                  <label htmlFor="settings-imageRefInput">Image Ref Id</label>
+                  <input id="settings-imageRefInput" value={imageRefInput} onChange={(event) => setImageRefInput(event.target.value)} />
                 </div>
                 <div className="input-wrap">
-                  <label>Image File</label>
+                  <label htmlFor="settings-image-file">Image File</label>
                   <input
-                    ref={imageFileInputRef}
+                    id="settings-image-file" ref={imageFileInputRef}
                     type="file"
                     accept="image/*"
                     onChange={(event) => setSelectedImageFile(event.target.files?.[0] || null)}
@@ -705,22 +705,22 @@ const SettingsPage: React.FC<Props> = ({
               </p>
               <div className="benchmark-test-form">
                 <div className="input-wrap small-input">
-                  <label>Test Id</label>
-                  <input value={draftTestId} onChange={(event) => setDraftTestId(event.target.value)} />
+                  <label htmlFor="settings-draftTestId">Test Id</label>
+                  <input id="settings-draftTestId" value={draftTestId} onChange={(event) => setDraftTestId(event.target.value)} />
                 </div>
                 <div className="input-wrap small-input">
-                  <label>Image Ref (optional)</label>
+                  <label htmlFor="settings-draftImageRef">Image Ref (optional)</label>
                   <input
-                    value={draftImageRef}
+                    id="settings-draftImageRef" value={draftImageRef}
                     onChange={(event) => setDraftImageRef(event.target.value)}
                     placeholder="-"
                   />
                 </div>
                 <div className="input-wrap">
-                  <label>Test Prompt</label>
+                  <label htmlFor="settings-draftUserPrompt">Test Prompt</label>
                   <textarea
                     rows={5}
-                    value={draftUserPrompt}
+                    id="settings-draftUserPrompt" value={draftUserPrompt}
                     onChange={(event) => setDraftUserPrompt(event.target.value)}
                   />
                 </div>
@@ -767,12 +767,12 @@ const SettingsPage: React.FC<Props> = ({
               )}
             </section>
             <div className="input-wrap small-input">
-              <label>Repeats per model (1-10)</label>
+              <label htmlFor="settings-repeats">Repeats per model (1-10)</label>
               <input
                 type="number"
                 min={1}
                 max={10}
-                value={repeats}
+                id="settings-repeats" value={repeats}
                 onChange={(event) => setRepeats(Math.max(1, Math.min(10, Number(event.target.value) || 1)))}
               />
             </div>

@@ -1,0 +1,76 @@
+{
+  "name": "valid_answer_finished_v3",
+  "expectedCode": null,
+  "payload": {
+    "type": "answer_finished",
+    "protocolVersion": 3,
+    "backendInstanceId": "be-11111111-1111-1111-1111-111111111111",
+    "connectionId": "con-11111111-1111-1111-1111-111111111111",
+    "sessionEpoch": 3,
+    "requestId": "req-11111111-1111-1111-1111-111111111111",
+    "answerId": "ans-11111111-1111-1111-1111-111111111111",
+    "snapshotId": "snap-11111111-1111-1111-1111-111111111111",
+    "candidateRevision": null,
+    "status": "completed",
+    "text": "Roll back first.",
+    "eventSeq": 42,
+    "latencyMs": 812,
+    "model": "google/gemini-3.8-flash",
+    "screenshotUsed": false,
+    "retrieval": {
+      "outcome": "used",
+      "chunks": [
+        {
+          "docId": "doc_1",
+          "chunkIndex": 3,
+          "title": "CV",
+          "excerpt": "rollback plan"
+        }
+      ]
+    },
+    "metadata": {},
+    "modelSettings": {
+      "role": "answer",
+      "model": "google/gemini-3.8-flash",
+      "requestedModel": "google/gemini-3.8-flash",
+      "selectionSource": "client",
+      "substitutedFrom": null,
+      "notice": null,
+      "reasoning": {
+        "effort": "low",
+        "applied": true,
+        "supportedEfforts": ["low", "high"],
+        "source": "client"
+      },
+      "capabilities": {
+        "textInput": true,
+        "textOutput": true,
+        "imageInput": true,
+        "structuredOutput": true,
+        "reasoningEfforts": ["low", "high"],
+        "certainty": "catalog"
+      }
+    },
+    "timing": {
+      "backend": {
+        "clock": "server_monotonic",
+        "acceptedMs": 0,
+        "rag": {
+          "startMs": 0.4,
+          "endMs": 28.6,
+          "durationMs": 28.2,
+          "outcome": "used"
+        },
+        "generation": {
+          "startMs": 29.1,
+          "firstDeltaMs": 380.4,
+          "endMs": 1203.1,
+          "durationMs": 1174
+        },
+        "completedMs": 1210.9,
+        "unavailable": []
+      },
+      "client": null
+    }
+  }
+}

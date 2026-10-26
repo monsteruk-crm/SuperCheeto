@@ -1,5 +1,117 @@
 # Changelog
 
+## 2026-10-26 (M06 complete: Sound and Settings preservation)
+- User-visible: dedicated accessible Sound dialog, persistent selected-input meter with honest signal states, monitoring after Stop, acknowledged device fallback, retained raw selection/focus/drafts, and original Settings workflows. Corrected modal button/label contrast and added associated Settings input labels/error visibility.
+- Internal: isolated meter subscriptions avoid transcript/answer rerenders; source changes resolve before invalidation/restart, inactive/no-op choices avoid restarting; controller lease guards capture mutations; monitor EOF/failure cleans up. Existing wire/status envelope, storage keys and SQLite schema remain. ADR 0017 records semantics.
+- Verification: backend 175 tests PASS; frontend 115 PASS; build PASS (302 modules); standalone TypeScript retains only 3 existing ImportMeta.env errors; diff PASS/data clean. Rendered Sound/Settings, required sizes and isolated persistence checks passed; real readers/benchmark orchestration used local fixtures. No cloud inference, actual device capture/STT or native controls acceptance. User help is reserved for M09/M10. [Full evidence](notes/2026-10-26-m06-acceptance.md).
+
+## 2026-10-25 (M04/M05 completion)
+- User-visible: four-panel manual workbench, safe streamed Markdown/GFM as HTML, editable frozen targets, pin/no-call, explicit Preset/Custom, notes, retained answer actions, readable anchors and persistent pointer/keyboard layout. Saved Preset now survives reload with custom text retained.
+- Internal: protocol v4/ADR 0016/shared fixtures, server-owned frozen reruns, snapshot leases, protected capacity/state replay, real reasoning propagation and usage, empty-index embedding skip, adversarial late-completion guards, 40ms render fallback and Electron external-link isolation.
+- Verification: backend 160 tests PASS; frontend 106 PASS; production build PASS (300 modules); diff check PASS; data clean. Standalone TypeScript retains exactly 3 existing ImportMeta.env errors. Required dimensions and mock WS incremental/selection/layout/anchor flows PASS. One authorized synthetic live inference completed with actual usage and rendered answer. Actual native capture/shortcuts, audio/STT and full Settings/AUTO acceptance remain later milestones; [evidence](notes/2026-10-25-m04-m05-acceptance.md) records exact boundaries.
+
+## 2026-10-25 (M04/M05 continuation: live answer rendering and acceptance hardening)
+- User-visible: streamed Gateway answers now render Markdown/GFM in the answer card, including headings, emphasis, lists, tables, quotes and code blocks. The four-panel Desk displays the rendered answer while the stream is still active. Transcript follow can pause, count new finals, resume or jump latest; required desktop and 1000px browser layouts were checked, including keyboard resizing. Raw HTML remains disabled. Delayed command-status replies now settle Keep/Remove/note actions without leaving controls stuck.
+- Internal: added `react-markdown` and `remark-gfm` under [ADR 0015](adr/0015-safe-markdown-answer-rendering.md), card Markdown styles and harness checks for real emphasis nodes and escaped raw HTML; exercised delayed `command_status` reconciliation, pause-follow, and note-draft preservation after rejection; closed M04 acceptance failure-injection, citation rejection, untrusted-source prompt-boundary and human-note test cases. Ran two live Gateway calls with only a synthetic arithmetic transcript in the isolated browser/backend (the second verified Markdown rendering); no audio or persistent RAG DB was used.
+- How to test: backend full discovery — 150/150 PASS; frontend Vitest — 78/78 PASS; production build — PASS (296 modules); `git diff --check` — PASS. Live rendered answer PASS (`google/gemini-3.8-flash`, `no_documents`, streamed before terminal; 1.82 s backend first delta and 1.85 s client first display after press). Full M04/M05 remain IN PROGRESS because pointer/persisted resizer, reading-anchor, full legacy parity, target editor and timing/cancellation matrices remain open; see progress ledger.
+
+## 2026-10-25 (M05: exact transcript selection handoff)
+- User-visible: selecting words in the raw transcript and choosing “Draft answer from selection” now freezes the exact source offsets; “Pin this moment” creates a pinned recent-context snapshot. The responsive grid uses CSS-driven proportions so its narrow two-by-two layout can take effect.
+- Internal: App now retains the component's `SourceSpan[]`, converts browser UTF-16 offsets to protocol Unicode code-point offsets, and sends them with `create_snapshot(kind="selection")`. Rerun retains the original screenshot data by accepted request instead of reading the current screenshot selection. Event callback dispatch removes any wire `type` field before adding the reducer discriminant. Added a fake-transport assertion with a supplementary Unicode character before the selection.
+- How to test: `cd frontend && npm run test -- --run` — 75/75 PASS; `npm run build` — PASS (39 modules); `npx tsc --noEmit` — FAIL with only the three existing `ImportMeta.env` TS2339 errors. Backend full suite — 143/143 PASS. M04/M05 remain IN PROGRESS; live/native visual acceptance was not run.
+
+## 2026-10-25 (M04-T02: bounded reconciliation and target retention regressions)
+- User-visible: no Desk UI change. The manual answer transport now has regression coverage proving that a reconciliation response remains accurate if the same bounded-history operation prunes the queried command record; a late missing Gateway credential returns a scoped dependency error and a definitive failed answer instead of leaving the request running.
+- Internal: added synthetic transport tests for forced-GC retention/release of explicit unpinned snapshot targets, status reconciliation at the registry capacity boundary, and generation-time access failure. The acceptance handoff now captures and rechecks the server session epoch after asynchronous supersession, rejecting the command and releasing its retained source if clear/restart or owner disconnect invalidates the session mid-flight. Supersession teardown exceptions also fail closed and release the retained source. Post-supersession commit/ack failure handling remains under test.
+- How to test: `cd backend && .venv/bin/python -m unittest tests.test_cockpit_transport tests.test_answer_service` — 50 tests PASS; full backend discovery — 141 PASS. Frontend Vitest 72 PASS and production build PASS. All are synthetic with mocked generation/RAG and temporary SQLite; live Gateway/audio/UI/native tests remain NOT RUN. `git diff --check` PASS.
+
+## 2026-10-25 (M04-T01: answer-service extraction; T03/T04 backend foundation)
+- User-visible: no Desk UI change yet. The manual protocol answer path now emits real RAG/generation/first-delta timing and v3 retrieval records can identify the exact local document path and `docId:chunkIndex` chunk. Retrieval outcomes distinguish an empty index from no matches and failure; failed retrieval context explicitly warns the model not to claim documents were checked.
+- Internal: extracted `AnswerService` to `backend/app/answer_service.py`, injecting the local store, embedder, runner provider and clock. It forwards deltas immediately, preserves the chosen model/screenshot inputs, and leaves HTTP/SSE framing, terminal validation, fallback and upstream cancellation in the existing `AIGatewayClient`. v2 retrieval wire payloads remain unchanged. Added offline service and transport evidence tests. M04-T02 strictly validates instruction/source/model/screenshot/note/reasoning/timing inputs before acceptance; rejected requests do not supersede current work, accepted source is retained before asynchronous supersession/GC, and serialized command handling prevents concurrent duplicate acceptance while keeping one active answer, and bounded registries prune terminal history without evicting live requests.
+- How to test: PASS — latest backend suite 135 tests; v3 transport subset 23 tests; earlier focused service/transport/contracts/Gateway-streaming suite 51 tests; frontend Vitest 72 tests; frontend production build. `git diff --check` PASS. `npx tsc --noEmit` remains the exact pre-existing 3-error `ImportMeta.env` failure. Live Gateway, audio/STT, rendered UI, first-visible and latency acceptance NOT RUN. M04 remains in progress; see the progress ledger.
+
+## 2026-10-25 (M3bis: amended realtime contracts, model readiness and timing)
+- User-visible:
+  - No Desk/UI behavior changed yet; this milestone implements the wire contract the workbench will display. The client now negotiates protocol v3 on connect and falls back to v2 unchanged.
+  - A request that needs a capability the selected model is not positively known to have (for example a screenshot on an unverified model) is now rejected with a visible `unsupported_capability` error instead of silently dropping the image. A model missing from a Gateway catalog this backend actually read is rejected with `unavailable_model`. Neither case places a paid call, and the target is retained.
+  - Deprecated model aliases are no longer invisible: the accepted request records the original selection, the substituted model and a notice.
+- Internal:
+  - Added ADR 0014 (protocol v3: model-readiness metadata and the timing contract) and amended ADR 0012 to point at it; the recorded v2 contract and legacy adapter are unchanged.
+  - `docs/API.md` gained a "Protocol v3" section: negotiation (`supportedProtocolVersions`, highest-common selection, rejection of unknown versions), v3 command additions (`reasoningEffort`, `clientPressedAtMs`), model-readiness rules and error codes, the frozen `answer_accepted.frozenInputs` block, and the C08 timing contract with units, clock origins, nullability, ordering rules and event placement.
+  - `backend/app/cockpit_models.py`: v3 version constants, `ModelRole`, `ModelSelectionSource`, `CapabilityCertainty`, `TimingClock`, model-capability/settings/frozen-input/timing dataclasses, and the `unsupported_capability`/`unavailable_model` error codes.
+  - `backend/app/model_roles.py` (new): role/capability readiness with a dated static catalog (Flash answer default, provisional Flash-Lite detector), positively-known image/structured capabilities, deprecated-alias provenance, and reasoning that is applied only for the verified default.
+  - `backend/app/cockpit_protocol.py`: v3 parsing for model settings, backend/client timing (clock labels, ordering), `answer_accepted` and `answer_timing`; existing v2 rules untouched.
+  - `backend/app/assistance.py`: per-version capability advertisement (`model_readiness`, `timing` for v3 only), wire-version negotiation helper, and request-record fields for frozen inputs, model settings, timing/`timingSeq` and the echoed client press instant.
+  - `backend/app/main.py`: negotiation in `hello`, version-correct envelopes, model-readiness preflight before the snapshot is consumed, frozen model/screenshot metadata, scoped `answer_timing` at acceptance, and final `timing`/`modelSettings` in `answer_finished`. `_broadcast_models` now remembers the catalog it actually read.
+  - `backend/app/ws_server.py`: `ConnectionInfo.protocol_version`.
+  - `frontend/src/ws.ts` advertises `[3, 2]`, adopts the negotiated version, and dispatches `answer_timing`; `cockpit/types.ts` and `cockpit/protocol.ts` mirror the v3 contract; `cockpit/reducer.ts` keeps backend and client timing in separate fields, applies only newer `timingSeq`, refuses to revive terminal records, records the first-visible checkpoint and derives press-to-visible only from two client values.
+  - Added `contracts/v3/` (6 valid, 9 invalid fixtures) read by both the backend and frontend contract harnesses. `contracts/v2/` is unchanged.
+- How to test / results:
+  - PASS: `cd backend && .venv/bin/python -m unittest discover -s tests` → 118 tests OK (synthetic; injected generation, stub RAG, isolated temp storage, ephemeral local ports).
+  - PASS: `cd backend && .venv/bin/python -m unittest tests.test_ai_gateway_client tests.test_gateway_streaming tests.test_cockpit_contracts tests.test_cockpit_model_roles` → 52 tests OK.
+  - PASS: `cd frontend && npm run test -- --run` → 5 files, 72 tests passed (including 30 shared contract fixtures).
+  - PASS: `cd frontend && npm run build`.
+  - FAIL (pre-existing, unrelated, unchanged): `cd frontend && npx tsc --noEmit` → the same 3× `TS2339` `import.meta.env` errors in `App.tsx`.
+  - NOT RUN: real audio/STT, live Gateway inference or catalog access, rendered UI, first-visible/latency measurement, native Electron. No latency, quality, or account-access claim is made.
+
+
+## 2026-10-25 (PLAN03: revised realtime cockpit execution plan)
+- User-visible:
+  - Updated the execution plan from the revised implementation brief. M00–M03 and RT01 remain complete; new M3bis is NOT STARTED and precedes M04.
+  - No application behavior changed in this documentation iteration.
+- Internal:
+  - Added a requirement-to-milestone map, expanded C07, and added C08 for timing/model-readiness evidence. M3bis owns follow-up contracts/types/transport and regression checks for the completed foundations.
+  - Made progressive display, model/attachment validation, independent bounded detection, partial/empty/cancel handling, and measured timing explicit in M04/M05/M07/M08/M10 and A25–A28.
+  - Synchronized the progress ledger, STATUS, and plan indexes. Accepted ADRs and the implementation brief remain unchanged; future wire changes require documented versioning before implementation.
+- How to test:
+  - Documentation link/anchor, task/acceptance-ID, completed-milestone preservation, and brief-unchanged checks: see PLAN03 in the progress command log.
+  - `git diff --check`: result recorded in the progress command log.
+  - Runtime suites, current catalog/model inference, latency/quality, rendered UI/audio/native acceptance: NOT RUN (documentation only).
+
+## 2026-10-23 (RT01: transcript-text realtime response foundation)
+- User-visible:
+  - Fresh answer default is `google/gemini-3.8-flash` with supported low reasoning. Existing `VERCEL_MODEL` and saved/user-selected models remain in force; no private environment/preferences were changed.
+  - Interrupted, malformed, failed or incomplete streams cannot appear completed. Already streamed partial drafts remain visible through v2, and actual empty output is not replaced with a success-looking placeholder.
+  - Local audio/STT remain local; this is streamed text generation from a transcript, with all existing Settings/RAG/preset/benchmark features retained.
+- Internal:
+  - `ai_gateway_client.py` parses SSE frames across network/UTF-8 boundaries, ignores reasoning, checks Responses/Chat terminal semantics, requests Chat streaming usage, closes upstream on cancellation, and includes API-format fallback overhead in generation/first-text timing. Same-model fallback remains limited to Responses HTTP 404 before content; no retry after partial output or 401/429/5xx.
+  - Default/model-specific low reasoning was checked against the full public Gateway catalog. The proposed live-audio example uses a different session API; it is not required for transcript-text answers.
+  - Added ADR 0013 and updated implementation prompt, plan C07, design spec, architecture/API/README and progress ledger. M04 still starts at T01; detector, progressive cockpit rendering and end-to-end timing evaluation remain open.
+- How to test (all PASS):
+  - `cd backend && .venv/bin/python -m unittest tests.test_ai_gateway_client tests.test_gateway_streaming tests.test_cockpit_transport` — 51 tests, synthetic provider frames plus real ephemeral local WebSockets.
+  - `cd backend && .venv/bin/python -m unittest discover -s tests` — 92 tests.
+  - `git diff --check` — no whitespace errors. Local documentation link/anchor check recorded in the progress ledger.
+  - Live model inference, account access, latency/quality, real audio and rendered/native UI: NOT RUN. Frontend code was unchanged in this amendment; its checks were not rerun. The recorded pre-existing `tsc` typing failure remains open.
+
+## 2026-10-23 (M03: owned, versioned transport)
+- User-visible:
+  - The app now negotiates protocol v2 on connect (`hello` → `hello_ack`), so a second window sees the first window as read-only for assistance instead of silently generating or cancelling in its place.
+  - A lost connection now leaves a visible "connection lost, status unknown" notice and clears the running indicator; the request is never resent automatically.
+  - Legacy manual queries are unchanged, but their replies now arrive before the "not running" state, so the answer text is never dropped.
+- Internal:
+  - `backend/app/ws_server.py` now assigns a server-side `connectionId` per socket, exposes `send_to`/`connections`, and calls connect/disconnect hooks; shared transcript/audio/status events stay broadcast.
+  - New `backend/app/assistance.py`: single control lease, server-owned `sessionEpoch`, bounded `commandId` outcomes (duplicate suppression + reconciliation), request records with one active answer slot, and interaction holds.
+  - `backend/app/main.py` routes v2 commands (`hello`, `claim_control`, `get_command_status`, `create_snapshot`, `run_context_query`, `run_snapshot_query`, `cancel_answer`, `interaction_state`), scopes chunks/completions/errors to the owning connection, cancels owned work on owner disconnect, and rejects unimplemented v2 commands with `not_ready`. Capabilities advertised: `assist`, `snapshots`.
+  - Generation is behind an injectable runner so transport tests use a mocked generator; the legacy `run_query` worker now shares it.
+  - `frontend/src/ws.ts`: typed send results (`offline`/`not_ready`), five-second acknowledgement deadline, `get_command_status` reconciliation, epoch/identity adoption, and `dispose()` cleanup; offline sends are never queued for replay.
+  - New `frontend/src/cockpit/reducer.ts`: retains request records until a definitive status and ignores stale epochs, foreign backend instances, unknown identities, duplicate `eventSeq`, and late events for cancelled requests.
+- How to test:
+  - `cd backend && .venv/bin/python -m unittest discover -s tests` (82 tests; includes 18 two-client transport tests).
+  - `cd frontend && npx vitest run` (44 tests; includes transport, reducer, and the App connection-loss harness test).
+  - `cd frontend && npm run build`.
+
+## 2026-10-23 (M02: immutable source snapshots)
+- User-visible:
+  - None yet: snapshot creation is available on the v2 surface but the desk UI still uses the legacy flow until M05.
+- Internal:
+  - `backend/app/transcript.py` records every committed segment as an immutable `SourceRecord` with `segmentKey` (`audioEpoch#segmentId`) and a monotonic `transcriptRevision`, tracks the live partial tail, and supports epoch rotation and clear without discarding history.
+  - New `backend/app/source_snapshots.py`: recent-window freezing at an explicit press-time anchor (complete intersecting segments from the anchor's audio epoch only), exact-selection freezing with validated code-point offsets, pinned moments with a 50-snapshot capacity limit, a 24,000-character limit that rejects instead of truncating, and reference-counted garbage collection. No model call is made.
+  - `Snapshot` gains `tentative` (explicitly requested partial text; never usable for AUTO).
+  - `backend/app/main.py` rotates the audio epoch on every capture start/stop and stores partial text from the live callback.
+  - `docs/API.md` documents source semantics, selection snapshots, `command_ack` rejection codes, and `snapshot_created.tentative`.
+- How to test:
+  - `cd backend && .venv/bin/python -m unittest tests.test_cockpit_snapshots -v` (22 tests).
+
 ## 2026-08-06 (Vercel AI Gateway migration)
 - User-visible:
   - Cloud AI calls (language queries, embeddings, model discovery) now route through Vercel AI Gateway instead of direct OpenAI.
@@ -601,3 +713,119 @@
   - Added preview truncation helper and full-text `title` on preview cells.
 - How to test:
   - Run benchmark, confirm Preview column is truncated and full text appears on hover.
+# 2026-10-09
+
+- Restored backend startup in the local virtualenv by fixing its `python` and `python3` symlinks to the installed Python 3.14 interpreter; confirmed `faster_whisper` imports and the WebSocket server starts. No application source or dependency declaration changed.
+- Verification: `source .venv/bin/activate && timeout 4s python -m app.main` from `backend/` (server reached listening state; timeout stopped the smoke check).
+
+
+## 2026-10-23 (Live Helper UX design and implementation handoff)
+- User-visible:
+  - Added a proposed dark translucent conversation cockpit, editable HTML prototype, Desk/Focus preview images, and a source-grounded Codex implementation prompt. User selected both Answer now and continuous FULL AUTO.
+  - Proposed passage-level targeting, stable streamed answer placement, reading floor, Hold, pending-question handoff, truthful evidence and compact Focus mode.
+- Internal:
+  - Added docs/design/INDEX.md and linked the specification/prompt from docs/INDEX.md and STATUS.md. ADR 0011 is Proposed; application code and live API remain unchanged.
+  - Created Superdesign baseline from the actual React Desk components with sample data, imported the authored cockpit, and retained design context/resume state. No model generation credits were used for those HTML imports.
+  - Preserved pre-existing STATUS/CHANGELOG edits and .mcp_memory/. Added ignores only for temporary design files and browser-check artifacts.
+- How to test / results:
+  - PASS: `node --check .superdesign/tmp/prototype-inline.js` after extracting the prototype's inline script with Python HTMLParser.
+  - PASS: local browser at http://127.0.0.1:8127/live-helper-cockpit.html; rendered Desk at 1440x900 and 1000x720, Focus at 640x640. Primary footer remains visible, no sideways overflow, answer/support text do not overlap; bounded answer scrolling works at smaller sizes. Inspected saved PNGs visually and repaired flex shrinking found during Focus review.
+  - PASS (scripted prototype only): Answer now completes; passage targeting exposes a next-request manual target and labels the previous answer; clearing returns to latest behavior; FULL AUTO advances to the next scripted question; Hold retains current answer with a queued question; disconnect retains output/disables send; reconnect leaves AUTO paused; Focus hides transcript.
+  - BLOCKED: the browser approval proxy rejected the scripted Show next click as potentially destructive. That specific click remains unverified. Its unsafe code-runner is also disabled; other checks used allowed individual clicks and read-only page inspection.
+  - NOT RUN: drag/Shift-click production targeting, all keyboard/native shortcuts, actual audio/STT, semantic detector quality, real Gateway/RAG calls, native pin/Ubuntu translucency, and application build/tests. This iteration adds design artifacts and documents only.
+  - Preview-only Tailwind CDN emits its normal production-use warning; actual application implementation must use local styles/build assets.
+
+## 2026-10-23 (four-column workbench revision and fallible-AI recovery)
+- User-visible:
+  - Revised the design after the user rejected the oversized answer pane and neat-question assumptions: full-height raw transcript, possible questions, working answers and kept/previous answers. Two real answer columns, compact persistent cards, independent scrolling and Transcript + layout.
+  - Primary action now snapshots recent raw words directly (20/45/90s), independent of successful question detection. Added pin-moment, editable/splittable human-set questions, source inspection and Wrong question recovery.
+  - The synthetic example includes unfinished/overlapping speech, a wrong deadline interpretation AND an unflagged wrong automatic draft, with original negation and human correction visible. Drafts remain explicitly unreviewed; auto eligibility/source grounding do not imply truth.
+  - Removed the proposed timed answer-replacement/countdown policy. Existing/pinned answers remain as new cards arrive.
+- Internal:
+  - Updated the existing Superdesign draft in place with reversible version history; retained the original application baseline. Updated the UX specification, complete implementation prompt, design-system/resume context, proposed ADR 0011, indexes and STATUS.
+  - Application source, live API, capture, Gateway/RAG and databases remain unchanged. Existing unrelated work is preserved.
+- How to test / results:
+  - PASS: `node --check .superdesign/tmp/prototype-inline.js` after HTMLParser extraction of the revised inline script.
+  - PASS (scripted preview): four columns at 1680x1000 (raw 515px; question 359px; answers 382px each) and 1440x900 (raw 440px; question 306px; answers 326px each); Transcript + expands raw to about 633px at 1680. No horizontal overflow, primary footer remains visible. At 1000x720 all four panels use two rows; answer-only Focus uses two columns at 960x800. Saved screenshots inspected.
+  - PASS (scripted preview): View raw highlights original negated source and suspends following; correct/save preserves raw text; splitting into two user-set questions supersedes the old interpretation and disables its stale actions. Wrong question on the unflagged wrong AUTO draft opens the original negation and retains the bad draft plus separate human correction.
+  - PASS (scripted preview): pin/clear recent context and direct last-20s draft work without a candidate; new draft preserves earlier/pinned cards. Ambiguous new speech adds Needs review without an automatic answer; a later eligible request creates an additional AUTO draft while the kept answer and original raw words remain.
+  - PASS (synthetic flood): after 18 appended bursts, 9 question cards and 8 working drafts were present; original raw context, separate partial tail and pinned answer remained intact, with no active job left at inspection. This is UI stress evidence, not real transcription/detection acceptance.
+  - Fixed during review: clipped Clear target control under long labels and a Tailwind outline class collision. Rechecked the corrected controls. Browser reports zero script errors; the preview CDN retains its expected production-use warning.
+  - NOT RUN: real audio/STT/detector accuracy, actual Gateway/RAG/evidence, native window/shortcuts/transparency, complete production cancellation/scheduling races, merge/undo/draggable-divider implementation, and exact drag/keyboard selection acceptance. No application build/test run was needed for this design-only revision.
+
+## 2026-10-23 (Sound overlay, persistent level bar and original feature parity)
+- User-visible:
+  - Added a dedicated Sound button and preferences overlay with system/microphone choice, both device selectors/meters and RMS/peak detail, refresh, start/stop and Done/close. The selected-input level bar remains in the main header when closed and in Focus.
+  - Added an explicit Settings entry marking the original separate screen. The actual original application and its Settings/RAG/docs/model/query/benchmark/image/history functionality remain unchanged; the implementation prompt now requires a full feature-parity checklist and preservation of stored data.
+  - Replaced the contradictory prompt instruction that moved all metering out of the main screen. Sound open/close must preserve capture, requests and reading state; active-input changes pause AUTO deliberately.
+- Internal:
+  - Updated prototype, screenshots, design specification/system, proposed ADR 0011, navigation indexes and STATUS. Added desktop and compact Sound previews. All audio levels/devices in this prototype are explicitly simulated.
+  - Kept Sound keyboard focus contained, return focus to Sound on close, and prioritize dialog Escape over background query cancellation. Made dialog content scroll internally so its action footer stays reachable in a compact panel.
+  - Inventoried actual App/PromptBar/OutputPane/TranscriptPane/SettingsPage capabilities for the prompt, including exact rerun, selected-text editing/reset, preset/custom execution, screenshot shortcut and RAG/benchmark details. A production Settings toast/placeholder is explicitly prohibited.
+- How to test / results:
+  - PASS: final inline JavaScript extraction plus `node --check .superdesign/tmp/prototype-inline.js`; `git diff --check`.
+  - PASS (scripted in-app preview): Sound open/close, initial/contained keyboard focus, Shift+Tab wrapping, focus return, selected source/main meter label follows input, stop transcription retains signal metering, changing active input pauses AUTO and retains four original answer cards.
+  - PASS (scripted in-app preview): Escape in Sound closes the dialog and retains the in-flight draft as unreviewed, without a cancelled/stopped request state.
+  - PASS: at actual 689x607 panel size, main meter/header and dialog Done/Start-Stop controls fit; at 1440x900 all four columns plus main level bar/Settings entry fit; at 960x800 Focus the main meter and Settings entry remain visible. Temporary viewport overrides were reset. Saved fresh Desk/Focus/Sound screenshots and refreshed the existing user tab without creating another tab.
+  - Fixed during review: compact overlay originally extended below the viewport; now only its body scrolls and its action footer stays visible. Removed decorative level gradient that could imply clipping at low signal. Initial favicon 404 fixed with an empty data icon; preview-only Tailwind CDN warning remains.
+  - NOT RUN: real hardware/device capture, source discovery/error handling, genuine metering, native shortcuts/transparency, actual full feature-parity acceptance or application build/tests. This iteration changes design artifacts and the implementation handoff only.
+
+## 2026-10-23 (cockpit milestone execution plan and progress ledger)
+- User-visible:
+  - Added a detailed milestone plan for the cockpit implementation brief and a separate progress Markdown for clean-context resumption.
+- Internal:
+  - Defined ordered task IDs, file targets, protocol/source/request defaults, ownership and AUTO transition rules, feature-parity checks, and acceptance gates.
+  - Required progress updates after each task, check, failure, interruption, and handoff. Added plan/index links without replacing pre-existing design documentation.
+  - Application source, runtime contracts, credentials, audio, and persisted data are unchanged. Implementation starts at M00-T01.
+- How to test / results:
+  - PASS: local document validator found 94 ordered tasks across 12 milestones, all 24 acceptance cases in the plan and progress ledger, 53 valid local links/anchors, and closed code fences. Local prose/requirement review and `git diff --check` passed.
+  - NOT RUN: application builds/tests, real audio/STT, Gateway/RAG calls, and native Electron acceptance. These belong to the execution milestones.
+
+## 2026-10-23 (cockpit M00: baseline + deterministic frontend harness)
+- User-visible:
+  - Added a deterministic frontend test harness (`npm run test` / `npm run test:watch`) using Vitest, jsdom, React Testing Library and user-event. It is fully mocked: no live backend, audio capture, RAG ingestion, or paid Gateway calls.
+  - Documented the harness in `README.md` and `frontend/README.md`.
+- Internal:
+  - Added `frontend/vitest.config.ts` (local config; production build still uses `vite.config.ts`) and `frontend/src/cockpit/__tests__/setup.ts`.
+  - Added test-only helpers under `frontend/src/cockpit/__tests__/helpers/`: fake clock, fake WebSocket transport (records outgoing messages and dispatches server events to the right handler), and mocked Gateway/detector. Added test-only synthetic messy-speech fixtures under `frontend/src/cockpit/__tests__/fixtures/`.
+  - Added `frontend/src/cockpit/__tests__/app_harness.test.tsx` proving one existing transcript/selection action (finalized row render + Clear Selection/Clear) and one existing Settings action (screenshot-inclusion toggle persisted to `ui-preferences.v1`) through the real `App` seam, plus `helpers.test.ts`.
+  - ADR 0011 records the frontend test-tool choice (Vitest/jsdom/RTL/user-event) while remaining Proposed.
+- How to test / results:
+  - PASS: `cd frontend && npm run test -- --run` → 2 files, 7 tests passed.
+  - PASS (baseline): `cd frontend && npm run build`; `cd backend && .venv/bin/python -m unittest discover -s tests` → 37 tests OK; `git diff --check`.
+  - FAIL (pre-existing, unrelated, kept as a baseline failure): `cd frontend && npx tsc --noEmit`. Before this milestone it failed with missing `@types/react`/`@types/react-dom` (TS7016/TS7026). Installing those types for React Testing Library removed those errors; the command still fails with 3× `TS2339: Property 'env' does not exist on type 'ImportMeta'` in `App.tsx` (missing `vite/client` types). This remaining failure is unrelated type configuration and is not repaired here; it does not block the harness.
+  - NOT RUN: real audio/STT, live WebSocket service, Gateway/RAG calls, native Electron acceptance. These belong to later milestones.
+
+## 2026-10-23 (cockpit M01: v2 contracts before wiring)
+- User-visible:
+  - No runtime behavior change. Protocol v2 is specified, modelled, and contract-tested only; the current WebSocket contract is unchanged and no v2 message is emitted or accepted yet.
+- Internal:
+  - Expanded ADR 0011 with contracts C01-C06, the authorized bootstrap extension, and the M00 frontend test-tool note (still Proposed).
+  - Added ADR 0012 (protocol v2, single-controller ownership, scoped lifecycle, legacy migration, test tools) and indexed it. ADR 0012 also records the candidate workflow, independent state dimensions, and the M08 event transition tables.
+  - Documented the complete proposed v2 surface in `docs/API.md`: envelope/identity fields, capability rollout, every client->server command and server->client event payload, ownership/claim-release rules, epoch invalidation, the five-second acknowledgement timeout and idempotency, stable error codes, and legacy compatibility examples.
+  - Added `backend/app/cockpit_models.py` (snake_case dataclasses/enums) and `frontend/src/cockpit/types.ts` (camelCase wire types) covering spans, snapshots, targets, candidate revisions, answers, control state, and commands.
+  - Added `backend/app/cockpit_protocol.py` and `frontend/src/cockpit/protocol.ts` pure contract parsers, plus shared fixtures under `contracts/v2/` (5 valid, 6 invalid) and harness tests on both sides.
+  - Added `docs/ARCHITECTURE.md` protocol-v2 notes and `docs/INDEX.md` links for ADR 0012 and the shared contracts.
+- How to test / results:
+  - PASS: `cd backend && .venv/bin/python -m unittest tests.test_cockpit_contracts -v` → 5 tests OK; backend and frontend parse the same `contracts/v2/` fixtures with identical outcomes.
+  - PASS: `cd frontend && npm run test -- --run` → 3 files, 22 tests passed (including 15 contract-fixture checks).
+  - PASS: `git diff --check`.
+  - FAIL (pre-existing, unrelated, unchanged): `cd frontend && npx tsc --noEmit` (3x `TS2339` `import.meta.env`). Not repaired.
+  - NOT RUN: any live v2 message, real backend wiring, audio, Gateway/RAG calls, or native Electron acceptance. These belong to M02+.
+
+
+## 2026-10-26 — M07 question proposals/correction and Gateway audit
+- User-visible: bounded optional question suggestions; truthful disabled/waiting/running/empty/failed states, retry, exact source excerpts/View raw, manual creation/target selection and edit/split/merge/dismiss/undo. Wrong question retains the original source/card and creates a linked corrected draft. Human wording stays separate from model interpretation. Source/answer controls and existing Settings workflows remain available.
+- Internal: protocol v5 and 23 shared fixtures, one cancellable detector plus latest dirty revision, immutable 200-revision candidate history/leases and compact reconciled command receipts. Structured output/low reasoning through the pooled Gateway HTTP client; endpoint guard prevents a direct-provider route, including overrides loaded from local dotenv at Settings construction. Obsolete compiled OpenAI client artifacts removed. Operator removed old private OpenAI env variables; no secret values displayed.
+- Tests run: `cd backend && .venv/bin/python -m unittest discover -s tests` — 198 PASS; `cd frontend && npm run test -- --run` — 146 PASS/10 files; `cd frontend && npm run build` — PASS/303 modules; `npx tsc --noEmit` — same 3 baseline ImportMeta.env errors; `git diff --check` — PASS. Actual local WebSocket and rendered desktop/compact workflows used synthetic transcript/Gateway dependencies and temporary SQLite. No paid inference, hardware audio/STT or native Electron acceptance. [Full evidence/screenshots](notes/2026-10-26-m07-acceptance.md).
+
+
+## 2026-10-26 (M08 complete: owned FULL AUTO)
+- User-visible: explicit Assist/FULL AUTO and pause/readiness/pending controls; automatic unreviewed source-linked drafts, review exclusions, manual takeover, editing/selection holds and deferred publication. Pause preserves active output; Stop/capture/source/clear/ownership transitions retain evidence and disarm as specified. Reconnect stays Assist and reconciles listening controls.
+- Internal: pure backend scheduler + AutoService reuse the existing Gateway text answer path and ownership/command lock; one active/newest pending/deferred result, revisioned configuration and no automatic paid retries. v6 contracts/32 fixtures preserve v2–v5 manual formats. Generation outcome remains separate from superseded publication; held candidate labels reconcile after completion. Strict config whitelist rejects private execution-field injection.
+- How to test: `cd backend && .venv/bin/python -m unittest discover -s tests -q` — 226 PASS; `cd frontend && npm test -- --run` — 186 PASS; `npm run build` — PASS (304 modules); `npx tsc --noEmit` — same 3 baseline ImportMeta.env errors. Actual local two-client WS, synthetic 81-question flood and rendered desktop/compact AUTO/hold/manual correction/reload checks passed. No paid inference, real audio/STT or native Electron acceptance. [Full evidence](notes/2026-10-26-m08-acceptance.md).
+
+
+## 2026-10-26 (resolve standalone TypeScript baseline)
+- Internal: added Vite's supplied client typings in `frontend/src/vite-env.d.ts`, fixing all three ImportMeta.env errors. Runtime environment parsing remains unchanged. Ignored local agent databases/editor backups when preparing the accumulated cockpit work for publication.
+- Verification: `cd frontend && npx tsc --noEmit` PASS (zero errors); `npm run build` PASS (304 modules); `npm test -- --run` PASS (186 tests); `cd backend && .venv/bin/python -m unittest discover -s tests -q` PASS (226 tests). Staged whitespace and local-artifact/credential-pattern checks PASS. No new dependency, protocol or architecture change.

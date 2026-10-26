@@ -1,0 +1,12 @@
+{
+  "name": "old_version",
+  "expectedCode": "incompatible_version",
+  "payload": {
+    "protocolVersion": 3,
+    "backendInstanceId": "backend-1",
+    "sessionEpoch": 1,
+    "commandId": "command-1",
+    "type": "rerun_answer",
+    "sourceAnswerId": "answer-1"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "answer_removed",
+  "expectedCode": null,
+  "payload": {
+    "protocolVersion": 4,
+    "backendInstanceId": "backend-1",
+    "sessionEpoch": 1,
+    "commandId": "command-1",
+    "type": "answer_state",
+    "connectionId": "connection-1",
+    "requestId": "req-1",
+    "answerId": "answer-1",
+    "stateSeq": 2,
+    "placement": "working",
+    "removed": true,
+    "snapshotAvailable": false,
+    "reason": "capacity_eviction"
+  }
+}

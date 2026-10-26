@@ -1,0 +1,13 @@
+{
+  "name": "invalid_retry",
+  "expectedCode": "invalid_payload",
+  "payload": {
+    "protocolVersion": 5,
+    "backendInstanceId": "backend-1",
+    "sessionEpoch": 1,
+    "commandId": "command-1",
+    "type": "set_detection",
+    "enabled": true,
+    "retry": "yes"
+  }
+}

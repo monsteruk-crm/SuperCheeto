@@ -1,0 +1,13 @@
+{
+  "name": "release_invalid_action",
+  "expectedCode": "invalid_payload",
+  "payload": {
+    "protocolVersion": 4,
+    "backendInstanceId": "backend-1",
+    "sessionEpoch": 1,
+    "commandId": "command-1",
+    "type": "snapshot_action",
+    "snapshotId": "snap-1",
+    "action": "delete"
+  }
+}

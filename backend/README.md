@@ -62,6 +62,16 @@ The prototype shows a live webcam overlay with coarse gaze direction labels (`le
 - Model discovery filters to `type == "language"` rows, excluding embedding/image/video models from the selector.
 - Streamed Responses API requests set `stream: true` so the backend receives `response.output_text.delta` events and final completion state.
 
+## Manual cockpit answers
+- Protocol v4 (with v2/v3 compatibility) manual answers freeze transcript/screenshot/model/reasoning/note inputs at acceptance, then stream nonempty answer deltas through the owned request channel. The controller uses `backend/app/answer_service.py`; it does not create a cloud audio session.
+- Retrieval outcomes distinguish `used`, `no_documents`, `no_matches`, and `failed`. Retrieved chunks retain their document ID/path/title/chunk index and excerpt for card evidence. Prompt context labels document excerpts as untrusted reference data, and citations to chunk IDs outside the retrieved set fail the answer request.
+- The four-panel frontend renders streamed Markdown/GFM as HTML elements with raw HTML disabled. First answer delta is backend acceptance-relative; first visible display is a separate client measurement.
+- Focused offline checks: `.venv/bin/python -m unittest tests.test_answer_service tests.test_cockpit_transport tests.test_gateway_streaming`; full backend suite: `.venv/bin/python -m unittest discover -s tests`.
+
+- v4 reruns reference a retained server answer; copied notes/content hashes, image bytes, retrieval evidence, instruction, source/human wording and model/reasoning are reused without fresh search. Kept/inspected/selected records are protected from bounded history eviction. Draft snapshot leases are transferred/released explicitly; command-status results recover lost handoffs without generation replay.
+- Empty RAG indexes return `no_documents` before embedding/search. Actual token usage is reported when supplied by Gateway; unavailable values stay null. Explicit reasoning reaches Responses and Chat payloads.
+- Final M04/M05 backend suite: 160 tests PASS. See [completion evidence](../docs/notes/2026-10-25-m04-m05-acceptance.md).
+
 ## Audio Notes (Ubuntu)
 - Requires PulseAudio or PipeWire with Pulse shim.
 - Install the audio stack and CLI tools with:
@@ -92,3 +102,22 @@ The prototype shows a live webcam overlay with coarse gaze direction labels (`le
 - Backend emits:
   - `rag_documents`: indexed document list with chunk counts and timestamps.
   - `rag_ingest_result`: ingestion counters + error list.
+
+## M06 audio monitoring semantics
+- Both configured inputs are monitored independently of transcription, including before Start/after Stop. Shutdown closes monitor processes; EOF/start/stream failures report unavailable rather than fresh zero samples.
+- Source discovery resolves and broadcasts actual fallback choices before capture restart. Active mode/device changes cancel source-bound work against the old epoch and invalidate/restart while retaining cards; inactive preference and identical selections do not restart active transcription. Failed discovery does not commit a requested mode. Capture mutations respect the controller lease.
+- Existing status envelopes report `audio_meter_unavailable` with source details and `audio_sources_error` on refresh failure. No new wire version, persistence key or database schema.
+- M06 backend suite: `.venv/bin/python -m unittest discover -s tests` — 175 PASS. Synthetic capture/benchmark clients and temporary RAG SQLite; real hardware/STT remain later acceptance. See [evidence](../docs/notes/2026-10-26-m06-acceptance.md).
+
+## M07 question service
+
+`question_detector.py` schedules bounded finalized-text structured output; `question_service.py` owns immutable candidates, expected revisions, retained source leases and correction. Detection is independent of AnswerService. `DETECTOR_MODEL` defaults to `google/gemini-3.5-flash-lite`; `DETECTOR_DEBOUNCE` defaults to 1 second (0.8–1.2). Full wire/bounds/failure semantics: [API v5](../docs/API.md#protocol-v5-question-proposals-and-correction). Focused synthetic checks: `.venv/bin/python -m unittest discover -s tests -p test_questions.py` from `backend/`.
+
+The shared Gateway client enforces `https://ai-gateway.vercel.sh/v1`; alternate `AI_GATEWAY_BASE_URL` origins/paths are rejected before client construction. It handles answers, detector JSON, catalog, embeddings and benchmark calls without a direct-provider fallback or OpenAI SDK. Provider model IDs/API compatibility remain valid through Gateway. Private local configuration now has no obsolete OpenAI variable names (operator removed them).
+
+Gateway/answer/detector/embedding configuration is read when `Settings` is constructed, after AppController loads local dotenv files. Explicit local model/debounce/timeout choices are honored; a direct-provider URL loaded from `.env.local` is rejected by the same client guard.
+
+## M08 owned AUTO
+`assistance.AutoScheduler` owns pure slot/attempt/config state; `auto_service.AutoService` serializes scheduling with the existing command lock and reuses AnswerService. One active answer, one newest eligible pending detector candidate and one deferred result. Protocol v6 advertises `full_auto`; v2–v5 retain manual compatibility. Arm requires current ownership, listening, detection, a source epoch and accepted revisioned settings. No persisted AUTO or inbox replay.
+
+Structured detector `reviewReasons` explicitly gates eligibility. Generation/publication outcomes remain independent; holds buffer only AUTO publication on the bounded request, then revalidate source/interpretation before release. Manual sends and lifecycle/candidate changes cancel or supersede matching work while retaining displayed partials and provenance. Failure/capacity pauses without automatic paid retry. No capture, STT, Gateway route or SQLite schema change. [ADR 0019](../docs/adr/0019-owned-full-auto-scheduling.md), [v6 API](../docs/API.md#protocol-v6-owned-full-auto), [M08 evidence](../docs/notes/2026-10-26-m08-acceptance.md). Full suite: 226 PASS; injected models, event gates/fake clocks, real two-client WebSockets and temporary SQLite only.

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
+
+from .ai_gateway_client import DEFAULT_TEXT_MODEL
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -66,14 +68,18 @@ class Settings:
     context_before_seconds: float = float(os.getenv("CONTEXT_BEFORE", "30"))
     context_after_seconds: float = float(os.getenv("CONTEXT_AFTER", "15"))
 
-    ai_gateway_model: str = os.getenv("VERCEL_MODEL", "openai/gpt-5.6-sol")
-    ai_gateway_base_url: str = os.getenv("AI_GATEWAY_BASE_URL", "https://ai-gateway.vercel.sh/v1")
-    ai_gateway_timeout_seconds: float = float(os.getenv("AI_GATEWAY_TIMEOUT", "30"))
+    # AppController loads local dotenv files before constructing Settings.
+    # Read cloud settings at construction so those overrides are effective.
+    ai_gateway_model: str = field(default_factory=lambda: os.getenv("VERCEL_MODEL", DEFAULT_TEXT_MODEL))
+    ai_gateway_base_url: str = field(default_factory=lambda: os.getenv("AI_GATEWAY_BASE_URL", "https://ai-gateway.vercel.sh/v1"))
+    ai_gateway_timeout_seconds: float = field(default_factory=lambda: float(os.getenv("AI_GATEWAY_TIMEOUT", "30")))
+    detector_model: str = field(default_factory=lambda: os.getenv("DETECTOR_MODEL", "google/gemini-3.5-flash-lite"))
+    detector_debounce_seconds: float = field(default_factory=lambda: float(os.getenv("DETECTOR_DEBOUNCE", "1.0")))
     rag_db_path: str = os.getenv(
         "RAG_DB_PATH",
         str(Path(__file__).resolve().parents[1] / "data" / "rag.sqlite"),
     )
-    rag_embedding_model: str = os.getenv("RAG_EMBEDDING_MODEL", "openai/text-embedding-3-small")
+    rag_embedding_model: str = field(default_factory=lambda: os.getenv("RAG_EMBEDDING_MODEL", "openai/text-embedding-3-small"))
     rag_top_k: int = int(os.getenv("RAG_TOP_K", "6"))
     rag_chunk_size_chars: int = int(os.getenv("RAG_CHUNK_SIZE_CHARS", "1200"))
     rag_chunk_overlap_chars: int = int(os.getenv("RAG_CHUNK_OVERLAP_CHARS", "180"))

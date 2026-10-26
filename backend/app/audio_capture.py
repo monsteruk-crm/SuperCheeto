@@ -369,7 +369,10 @@ class AudioCapture:
     async def stop(self) -> None:
         if not self._process:
             return
-        self._process.terminate()
+        try:
+            self._process.terminate()
+        except ProcessLookupError:
+            pass
         try:
             await asyncio.wait_for(self._process.wait(), timeout=1.5)
         except asyncio.TimeoutError:

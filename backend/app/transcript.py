@@ -4,6 +4,12 @@ import re
 from dataclasses import dataclass
 from typing import List, Optional
 
+from .source_snapshots import (
+    SourceRecord,
+    make_audio_epoch,
+    make_partial_key,
+    make_segment_key,
+)
 from .stt import Segment
 
 
@@ -14,8 +20,50 @@ class SelectionRange:
 
 
 class TranscriptStore:
-    def __init__(self) -> None:
+    """Committed transcript text plus immutable, addressable source records.
+
+    The duplicate-suppression and legacy `segments()`/`build_context()` behavior
+    is unchanged. On top of it, every committed segment is recorded as an
+    immutable `SourceRecord` with a `segmentKey` (`audioEpoch#segmentId`) and a
+    monotonic transcript revision, so a later clear, restart, or mutation cannot
+    rewrite history an answer was produced from.
+    """
+
+    def __init__(self, audio_epoch: Optional[str] = None) -> None:
         self._segments: List[Segment] = []
+        self._records: List[SourceRecord] = []
+        self._by_key: dict[str, SourceRecord] = {}
+        self._partial: Optional[SourceRecord] = None
+        self._audio_epoch = audio_epoch or make_audio_epoch()
+        self._revision = 0
+
+    # -- identity ---------------------------------------------------------
+
+    @property
+    def audio_epoch(self) -> str:
+        return self._audio_epoch
+
+    @property
+    def revision(self) -> int:
+        """Monotonic revision of committed-source changes."""
+        return self._revision
+
+    def set_audio_epoch(self, audio_epoch: str) -> str:
+        """Start a new capture incarnation without discarding earlier text.
+
+        Earlier records keep their own `audioEpoch`, so reused STT segment IDs
+        in the new incarnation cannot collide with them.
+        """
+        epoch = (audio_epoch or "").strip() or make_audio_epoch()
+        if epoch == self._audio_epoch:
+            return self._audio_epoch
+        self._audio_epoch = epoch
+        # Partial text belongs to the capture that produced it.
+        self._partial = None
+        self._revision += 1
+        return self._audio_epoch
+
+    # -- committed source -------------------------------------------------
 
     @staticmethod
     def _normalized_text(text: str) -> str:
@@ -57,8 +105,72 @@ class TranscriptStore:
     def add_segment(self, segment: Segment) -> bool:
         if self._is_recent_duplicate(segment):
             return False
+        self._revision += 1
+        record = SourceRecord(
+            segment_key=make_segment_key(self._audio_epoch, segment.id),
+            segment_id=segment.id,
+            audio_epoch=self._audio_epoch,
+            t0=segment.t0,
+            t1=segment.t1,
+            text=segment.text,
+            source_kind=segment.source_kind,
+            source_name=segment.source_name,
+            revision=self._revision,
+            is_partial=False,
+        )
         self._segments.append(segment)
+        self._records.append(record)
+        self._by_key[record.segment_key] = record
         return True
+
+    def set_partial(
+        self,
+        text: str,
+        t: float,
+        source_kind: str = "system",
+        source_name: Optional[str] = None,
+    ) -> Optional[SourceRecord]:
+        """Track the live partial tail for explicit, tentative freezing only."""
+        cleaned = (text or "").strip()
+        if not cleaned:
+            self._partial = None
+            return None
+        self._partial = SourceRecord(
+            segment_key=make_partial_key(self._audio_epoch),
+            segment_id=-1,
+            audio_epoch=self._audio_epoch,
+            t0=max(0.0, float(t)),
+            t1=float(t),
+            text=cleaned,
+            source_kind=source_kind,
+            source_name=source_name,
+            revision=self._revision,
+            is_partial=True,
+        )
+        return self._partial
+
+    def clear(self) -> None:
+        self._segments = []
+        self._records = []
+        self._by_key = {}
+        self._partial = None
+        self._revision += 1
+
+    def records(self) -> tuple[SourceRecord, ...]:
+        return tuple(self._records)
+
+    def record(self, segment_key: str) -> Optional[SourceRecord]:
+        found = self._by_key.get(segment_key)
+        if found is not None:
+            return found
+        if self._partial is not None and self._partial.segment_key == segment_key:
+            return self._partial
+        return None
+
+    def partial(self) -> Optional[SourceRecord]:
+        return self._partial
+
+    # -- legacy behavior --------------------------------------------------
 
     def segments(self) -> List[Segment]:
         return list(self._segments)

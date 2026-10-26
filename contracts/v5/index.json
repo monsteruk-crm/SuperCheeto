@@ -1,0 +1,147 @@
+{
+  "context": {
+    "protocolVersion": 5,
+    "backendInstanceId": "backend-1",
+    "sessionEpoch": 1
+  },
+  "fixtures": [
+    {
+      "name": "create",
+      "file": "create.json",
+      "expectedCode": null,
+      "kind": "command"
+    },
+    {
+      "name": "edit",
+      "file": "edit.json",
+      "expectedCode": null,
+      "kind": "command"
+    },
+    {
+      "name": "split",
+      "file": "split.json",
+      "expectedCode": null,
+      "kind": "command"
+    },
+    {
+      "name": "merge",
+      "file": "merge.json",
+      "expectedCode": null,
+      "kind": "command"
+    },
+    {
+      "name": "dismiss",
+      "file": "dismiss.json",
+      "expectedCode": null,
+      "kind": "command"
+    },
+    {
+      "name": "undo",
+      "file": "undo.json",
+      "expectedCode": null,
+      "kind": "command"
+    },
+    {
+      "name": "correct",
+      "file": "correct.json",
+      "expectedCode": null,
+      "kind": "command"
+    },
+    {
+      "name": "empty_wording",
+      "file": "empty_wording.json",
+      "expectedCode": "invalid_payload",
+      "kind": "command"
+    },
+    {
+      "name": "empty_source",
+      "file": "empty_source.json",
+      "expectedCode": "invalid_payload",
+      "kind": "command"
+    },
+    {
+      "name": "bad_revision",
+      "file": "bad_revision.json",
+      "expectedCode": "invalid_payload",
+      "kind": "command"
+    },
+    {
+      "name": "missing_parents",
+      "file": "missing_parents.json",
+      "expectedCode": "invalid_payload",
+      "kind": "command"
+    },
+    {
+      "name": "one_split",
+      "file": "one_split.json",
+      "expectedCode": "invalid_payload",
+      "kind": "command"
+    },
+    {
+      "name": "missing_answer",
+      "file": "missing_answer.json",
+      "expectedCode": "invalid_payload",
+      "kind": "command"
+    },
+    {
+      "name": "invalid_offset",
+      "file": "invalid_offset.json",
+      "expectedCode": "invalid_span",
+      "kind": "command"
+    },
+    {
+      "name": "detection_enable",
+      "file": "detection_enable.json",
+      "expectedCode": null,
+      "kind": "command"
+    },
+    {
+      "name": "detection_retry",
+      "file": "detection_retry.json",
+      "expectedCode": null,
+      "kind": "command"
+    },
+    {
+      "name": "invalid_retry",
+      "file": "invalid_retry.json",
+      "expectedCode": "invalid_payload",
+      "kind": "command"
+    },
+    {
+      "name": "candidate_state",
+      "file": "candidate_state.json",
+      "expectedCode": null,
+      "kind": "question_event"
+    },
+    {
+      "name": "bad_candidate_count",
+      "file": "bad_candidate_count.json",
+      "expectedCode": "invalid_payload",
+      "kind": "question_event"
+    },
+    {
+      "name": "bad_candidate_source",
+      "file": "bad_candidate_source.json",
+      "expectedCode": "invalid_payload",
+      "kind": "question_event"
+    },
+    {
+      "name": "detector_empty",
+      "file": "detector_empty.json",
+      "expectedCode": null,
+      "kind": "question_event"
+    },
+    {
+      "name": "detector_failed",
+      "file": "detector_failed.json",
+      "expectedCode": null,
+      "kind": "question_event"
+    },
+    {
+      "name": "bad_detector_flag",
+      "file": "bad_detector_flag.json",
+      "expectedCode": "invalid_payload",
+      "kind": "question_event"
+    }
+  ]
+}
