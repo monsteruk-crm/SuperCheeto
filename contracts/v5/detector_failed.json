@@ -1,0 +1,20 @@
+{
+  "name": "detector_failed",
+  "expectedCode": null,
+  "payload": {
+    "protocolVersion": 5,
+    "backendInstanceId": "backend-1",
+    "connectionId": "connection-1",
+    "sessionEpoch": 1,
+    "stateSeq": 1,
+    "type": "detector_state",
+    "enabled": true,
+    "inFlight": false,
+    "dirty": false,
+    "truncated": false,
+    "outcome": "failed",
+    "lastError": "Request failed",
+    "lastRevision": 1,
+    "model": null
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "name": "valid_answer_finished",
+  "expectedCode": null,
+  "payload": {
+    "type": "answer_finished",
+    "protocolVersion": 2,
+    "backendInstanceId": "be-11111111-1111-1111-1111-111111111111",
+    "connectionId": "con-11111111-1111-1111-1111-111111111111",
+    "sessionEpoch": 3,
+    "requestId": "req-11111111-1111-1111-1111-111111111111",
+    "answerId": "ans-11111111-1111-1111-1111-111111111111",
+    "snapshotId": "snap-11111111-1111-1111-1111-111111111111",
+    "candidateRevision": 7,
+    "status": "completed",
+    "text": "Roll back first.",
+    "eventSeq": 42,
+    "latencyMs": 812,
+    "model": "openai/gpt-5.6-sol",
+    "screenshotUsed": false,
+    "retrieval": {
+      "outcome": "used",
+      "chunks": [
+        {
+          "docId": "doc_1",
+          "chunkIndex": 3,
+          "title": "CV",
+          "excerpt": "rollback plan"
+        }
+      ]
+    },
+    "metadata": {
+      "inferredIntent": "rollback"
+    }
+  }
+}

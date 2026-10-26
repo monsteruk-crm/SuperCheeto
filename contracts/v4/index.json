@@ -1,0 +1,81 @@
+{
+  "context": {
+    "protocolVersion": 4,
+    "backendInstanceId": "backend-1",
+    "sessionEpoch": 1
+  },
+  "fixtures": [
+    {
+      "name": "rerun",
+      "file": "rerun.json",
+      "kind": "command",
+      "expectedCode": null
+    },
+    {
+      "name": "rerun_missing_source",
+      "file": "rerun_missing_source.json",
+      "kind": "command",
+      "expectedCode": "invalid_payload"
+    },
+    {
+      "name": "release",
+      "file": "release.json",
+      "kind": "command",
+      "expectedCode": null
+    },
+    {
+      "name": "release_invalid_action",
+      "file": "release_invalid_action.json",
+      "kind": "command",
+      "expectedCode": "invalid_payload"
+    },
+    {
+      "name": "human_target",
+      "file": "human_target.json",
+      "kind": "command",
+      "expectedCode": null
+    },
+    {
+      "name": "target_source_mismatch",
+      "file": "target_source_mismatch.json",
+      "kind": "command",
+      "expectedCode": "invalid_span"
+    },
+    {
+      "name": "old_version",
+      "file": "old_version.json",
+      "kind": "command",
+      "expectedCode": "incompatible_version"
+    },
+    {
+      "name": "answer_kept",
+      "file": "answer_kept.json",
+      "kind": "answer_state",
+      "expectedCode": null
+    },
+    {
+      "name": "answer_removed",
+      "file": "answer_removed.json",
+      "kind": "answer_state",
+      "expectedCode": null
+    },
+    {
+      "name": "invalid_state_seq",
+      "file": "invalid_state_seq.json",
+      "kind": "answer_state",
+      "expectedCode": "invalid_payload"
+    },
+    {
+      "name": "invalid_state_flag",
+      "file": "invalid_state_flag.json",
+      "kind": "answer_state",
+      "expectedCode": "invalid_payload"
+    },
+    {
+      "name": "selection_without_anchor",
+      "file": "selection_without_anchor.json",
+      "kind": "command",
+      "expectedCode": null
+    }
+  ]
+}

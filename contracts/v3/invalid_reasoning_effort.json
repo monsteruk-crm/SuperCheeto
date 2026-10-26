@@ -1,0 +1,23 @@
+{
+  "name": "invalid_reasoning_effort",
+  "expectedCode": "invalid_payload",
+  "payload": {
+    "type": "run_context_query",
+    "protocolVersion": 3,
+    "backendInstanceId": "be-11111111-1111-1111-1111-111111111111",
+    "sessionEpoch": 3,
+    "commandId": "cmd-00000000-0000-0000-0000-000000000012",
+    "anchorSegmentKey": "epoch-1#4",
+    "windowSeconds": 20,
+    "targetId": null,
+    "mode": "Preset",
+    "presetId": "answer_question",
+    "customInstruction": null,
+    "model": "google/gemini-3.8-flash",
+    "reasoningEffort": "extreme",
+    "clientPressedAtMs": 81234.5,
+    "includeScreenshot": false,
+    "screenshotDataUrl": null,
+    "humanNoteIds": []
+  }
+}

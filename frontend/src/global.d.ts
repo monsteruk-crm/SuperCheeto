@@ -5,6 +5,7 @@ declare global {
     electronAPI?: {
       ping: () => string
       captureScreen: () => Promise<string | null>
+      onCaptureScreenShortcut: (callback: () => void) => () => void
     }
   }
 }

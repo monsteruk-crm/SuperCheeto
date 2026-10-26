@@ -1,0 +1,50 @@
+{
+  "name": "invalid_missing_model_settings",
+  "expectedCode": "invalid_payload",
+  "payload": {
+    "type": "answer_accepted",
+    "protocolVersion": 3,
+    "backendInstanceId": "be-11111111-1111-1111-1111-111111111111",
+    "connectionId": "con-11111111-1111-1111-1111-111111111111",
+    "sessionEpoch": 3,
+    "commandId": "cmd-00000000-0000-0000-0000-000000000014",
+    "requestId": "req-11111111-1111-1111-1111-111111111111",
+    "answerId": "ans-11111111-1111-1111-1111-111111111111",
+    "snapshotId": "snap-11111111-1111-1111-1111-111111111111",
+    "candidateRevision": null,
+    "mode": "Preset",
+    "model": "google/gemini-3.8-flash",
+    "frozenInputs": {
+      "instruction": "Answer clearly and concisely.",
+      "mode": "Preset",
+      "presetId": "answer_question",
+      "humanNoteIds": [],
+      "includeScreenshot": false,
+      "screenshot": {
+        "requested": false,
+        "included": false,
+        "reason": null
+      }
+    },
+    "timing": {
+      "backend": {
+        "clock": "server_monotonic",
+        "acceptedMs": 0,
+        "rag": null,
+        "generation": null,
+        "completedMs": null,
+        "unavailable": [
+          "rag",
+          "generation",
+          "completed"
+        ]
+      },
+      "client": {
+        "clock": "client_monotonic",
+        "pressedMs": 81234.5,
+        "firstVisibleMs": null,
+        "terminalReceivedMs": null
+      }
+    }
+  }
+}

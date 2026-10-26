@@ -1,7 +1,10 @@
-import { app, BrowserWindow, desktopCapturer, ipcMain, screen, session } from 'electron'
+import { app, BrowserWindow, desktopCapturer, globalShortcut, ipcMain, screen, session, shell } from 'electron'
 import path from 'path'
 
 const isDev = () => Boolean(process.env.VITE_DEV_SERVER_URL || process.env.NODE_ENV === 'development')
+const CAPTURE_SCREEN_SHORTCUT = 'CommandOrControl+Alt+C'
+
+app.commandLine.appendSwitch('enable-features', 'GlobalShortcutsPortal')
 
 const buildContentSecurityPolicy = () =>
   [
@@ -41,6 +44,16 @@ const createWindow = () => {
     }
   })
 
+  // Markdown links open in the external browser; they never navigate a renderer
+  // that has the screenshot preload bridge.
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    try { const parsed = new URL(url); if (parsed.protocol === 'https:' || parsed.protocol === 'http:') void shell.openExternal(parsed.toString()) } catch { /* reject malformed links */ }
+    return { action: 'deny' }
+  })
+  win.webContents.on('will-navigate', (event, url) => {
+    if (url !== win.webContents.getURL()) event.preventDefault()
+  })
+
   const devUrl = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173'
   if (isDev()) {
     win.loadURL(devUrl)
@@ -48,6 +61,14 @@ const createWindow = () => {
   } else {
     win.loadFile(path.join(__dirname, '../dist/index.html'))
   }
+}
+
+const sendCaptureScreenShortcut = () => {
+  const win = BrowserWindow.getAllWindows()[0]
+  if (!win || win.isDestroyed()) {
+    return
+  }
+  win.webContents.send('capture-screen-hotkey')
 }
 
 ipcMain.handle('capture-screen', async () => {
@@ -67,12 +88,19 @@ ipcMain.handle('capture-screen', async () => {
 app.whenReady().then(() => {
   installContentSecurityPolicy()
   createWindow()
+  if (!globalShortcut.register(CAPTURE_SCREEN_SHORTCUT, sendCaptureScreenShortcut)) {
+    console.warn(`Failed to register global shortcut: ${CAPTURE_SCREEN_SHORTCUT}`)
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow()
     }
   })
+})
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll()
 })
 
 app.on('window-all-closed', () => {

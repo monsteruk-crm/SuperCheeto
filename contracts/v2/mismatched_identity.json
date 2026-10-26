@@ -1,0 +1,17 @@
+{
+  "name": "mismatched_identity",
+  "expectedCode": "invalid_span",
+  "payload": {
+    "type": "run_snapshot_query",
+    "protocolVersion": 2,
+    "backendInstanceId": "be-11111111-1111-1111-1111-111111111111",
+    "sessionEpoch": 3,
+    "commandId": "cmd-00000000-0000-0000-0000-000000000011",
+    "snapshotId": "snap-unknown",
+    "targetId": null,
+    "mode": "Custom",
+    "presetId": null,
+    "customInstruction": "Focus on the rollback plan.",
+    "model": "openai/gpt-5.6-sol"
+  }
+}

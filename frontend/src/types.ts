@@ -2,6 +2,9 @@ export type AudioStreamKind = 'system' | 'mic'
 
 export type TranscriptSegment = {
   id: number
+  segmentKey?: string
+  audioEpoch?: string
+  revision?: number
   t0: number
   t1: number
   text: string
@@ -16,7 +19,7 @@ export type Preset = {
   instruction: string
 }
 
-export type OpenAIModelInfo = {
+export type GatewayModelInfo = {
   id: string
   object: string
   created: number | null

@@ -50,7 +50,7 @@ const OutputPane: React.FC<Props> = ({
       <header>
         <div>
           <h2>Response</h2>
-          <p>Latest answer from OpenAI based on the selected transcript.</p>
+          <p>Latest answer from AI Gateway based on the selected transcript.</p>
         </div>
         <div className="response-header-actions">
           {isQuerying ? <div className="querying-pill">Streaming response...</div> : null}

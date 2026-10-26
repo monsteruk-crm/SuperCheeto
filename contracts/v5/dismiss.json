@@ -1,0 +1,19 @@
+{
+  "name": "dismiss",
+  "expectedCode": null,
+  "payload": {
+    "protocolVersion": 5,
+    "backendInstanceId": "backend-1",
+    "sessionEpoch": 1,
+    "commandId": "command-1",
+    "type": "candidate_action",
+    "action": "dismiss",
+    "parents": [
+      {
+        "candidateId": "candidate-1",
+        "expectedRevision": 1
+      }
+    ],
+    "drafts": []
+  }
+}

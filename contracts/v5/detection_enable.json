@@ -1,0 +1,12 @@
+{
+  "name": "detection_enable",
+  "expectedCode": null,
+  "payload": {
+    "protocolVersion": 5,
+    "backendInstanceId": "backend-1",
+    "sessionEpoch": 1,
+    "commandId": "command-1",
+    "type": "set_detection",
+    "enabled": true
+  }
+}
