@@ -8,6 +8,8 @@ Plan: [execution plan](live-helper-cockpit-execution-plan.md). Requirements: [im
 
 ## Resume here
 
+- Publication follow-up: [PR #1](https://github.com/monsteruk-crm/SuperCheeto/pull/1) is open against `master`; implementation commit `c760df1` pushed on `vercel-ai`. Standalone TypeScript errors are resolved; all final checks pass. Next implementation milestone remains M09-T01.
+
 - M08-T01–T09 COMPLETE. [M08 acceptance](../notes/2026-10-26-m08-acceptance.md) maps tasks, 32 shared v6 fixtures, deterministic races/flood, actual two-client WS and rendered evidence. [ADR 0019](../adr/0019-owned-full-auto-scheduling.md) accepted for this scope. Historical M00–M07 entries remain intact.
 - Next **M09-T01**: INDEX → STATUS → this ledger → `sed -n '455,471p' docs/plans/live-helper-cockpit-execution-plan.md`. Inventory installed Electron/display/compositor and official version-specific native support before IPC/shortcut/window changes. No silent Electron upgrade.
 - Latest gates: backend 226 PASS; frontend 186 PASS (11 files); build304 PASS; diff PASS; user data clean. Standalone TypeScript now passes after adding the Vite client type reference; the three historical baseline errors are resolved.
@@ -489,5 +491,5 @@ M04 and M05 COMPLETE: protocol v4 frozen reruns/targets/retention, four-panel ma
 ## Vite typing and publication follow-up — 26 October 2026
 - Added `frontend/src/vite-env.d.ts` referencing `vite/client`. All three standalone ImportMeta.env errors are resolved; runtime environment parsing is unchanged.
 - `cd frontend && npx tsc --noEmit` PASS; `npm run build` PASS (304 modules). Current STATUS/frontend runbook corrected; historical milestone acceptance records retain their original results.
-- Preparing the accumulated cockpit source, contracts, tests, docs and acceptance screenshots for a PR from `vercel-ai` to `master`. Local memory databases/editor backups are ignored and remain local. User RAG files and private configuration remain outside the change.
+- Published the accumulated cockpit source, contracts, tests, docs and acceptance screenshots from `vercel-ai` to [PR #1](https://github.com/monsteruk-crm/SuperCheeto/pull/1), targeting `master`. Implementation commit `c760df1` is pushed. Local memory databases/editor backups are ignored and remain local. User RAG files and private configuration remain outside the change.
 - Final pre-publication suites: backend 226 PASS; frontend 186 PASS; standalone TypeScript PASS; build304 PASS. Staged scan excludes memory databases, backups, private environment and RAG data. Two whitespace findings in newly staged files corrected. Remote master/vercel-ai tips verified directly; normal fetch hit a pre-existing broken local Codex checkpoint ref, which was left intact.
