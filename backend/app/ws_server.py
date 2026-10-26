@@ -30,6 +30,7 @@ class ConnectionInfo:
     created_at: float = field(default_factory=time)
     #: Wire version negotiated by `hello`; v2 until the client negotiates (M3bis).
     protocol_version: int = 2
+    disconnect_task: Optional[asyncio.Task] = field(default=None, repr=False)
 
 
 class WebSocketHub:
@@ -70,6 +71,20 @@ class WebSocketHub:
     def connection(self, connection_id: str) -> Optional[ConnectionInfo]:
         return self._connections.get(connection_id or "")
 
+    async def _disconnect(self, info: ConnectionInfo) -> None:
+        """Run cleanup once, independently of a failing sender's cancellation."""
+        if info.disconnect_task is None:
+            self._connections.pop(info.connection_id, None)
+            info.disconnect_task = asyncio.create_task(self._notify_disconnect(info))
+        await asyncio.shield(info.disconnect_task)
+
+    async def _notify_disconnect(self, info: ConnectionInfo) -> None:
+        try:
+            if self._on_disconnect:
+                await self._on_disconnect(info)
+        finally:
+            await info.websocket.close()
+
     async def send_to(self, connection_id: str, msg_type: str, payload: Dict[str, Any]) -> bool:
         """Send one message to one connection. Returns False if it is gone."""
         info = self._connections.get(connection_id or "")
@@ -79,7 +94,7 @@ class WebSocketHub:
         try:
             await info.websocket.send(message)
         except Exception:
-            self._connections.pop(info.connection_id, None)
+            await self._disconnect(info)
             return False
         return True
 
@@ -94,7 +109,7 @@ class WebSocketHub:
         )
         for info, result in zip(infos, results):
             if isinstance(result, Exception):
-                self._connections.pop(info.connection_id, None)
+                await self._disconnect(info)
 
     async def _client_handler(self, websocket: ServerConnection):
         info = ConnectionInfo(
@@ -103,9 +118,9 @@ class WebSocketHub:
             peer=_peer_label(websocket),
         )
         self._connections[info.connection_id] = info
-        if self._on_connect:
-            await self._on_connect(info)
         try:
+            if self._on_connect:
+                await self._on_connect(info)
             async for message in websocket:
                 try:
                     data = json.loads(message)
@@ -115,9 +130,7 @@ class WebSocketHub:
                     continue
                 await self._handler(data, info)
         finally:
-            removed = self._connections.pop(info.connection_id, None)
-            if removed is not None and self._on_disconnect:
-                await self._on_disconnect(info)
+            await self._disconnect(info)
 
 
 def _peer_label(websocket: ServerConnection) -> Optional[str]:

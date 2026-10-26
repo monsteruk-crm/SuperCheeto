@@ -22,8 +22,8 @@ class SelectionRange:
 class TranscriptStore:
     """Committed transcript text plus immutable, addressable source records.
 
-    The duplicate-suppression and legacy `segments()`/`build_context()` behavior
-    is unchanged. On top of it, every committed segment is recorded as an
+    Duplicate suppression requires overlapping audio in the same source epoch.
+    Every committed segment is recorded as an
     immutable `SourceRecord` with a `segmentKey` (`audioEpoch#segmentId`) and a
     monotonic transcript revision, so a later clear, restart, or mutation cannot
     rewrite history an answer was produced from.
@@ -76,7 +76,7 @@ class TranscriptStore:
             return 0
         return len(normalized_text.split())
 
-    def _is_recent_duplicate(self, segment: Segment, recent_seconds: float = 3.0) -> bool:
+    def _is_recent_duplicate(self, segment: Segment) -> bool:
         normalized = self._normalized_text(segment.text)
         if not normalized:
             return False
@@ -84,10 +84,11 @@ class TranscriptStore:
         if word_count < 3:
             return False
 
-        for previous in reversed(self._segments):
-            if segment.t0 - previous.t1 > recent_seconds:
-                break
-            if previous.source_kind != segment.source_kind:
+        for previous in reversed(self._records):
+            if (previous.audio_epoch != self._audio_epoch
+                    or previous.source_kind != segment.source_kind
+                    or previous.source_name != segment.source_name
+                    or segment.t0 >= previous.t1 or segment.t1 <= previous.t0):
                 continue
             previous_normalized = self._normalized_text(previous.text)
             if not previous_normalized:

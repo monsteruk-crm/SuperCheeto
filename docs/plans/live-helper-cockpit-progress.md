@@ -8,6 +8,8 @@ Plan: [execution plan](live-helper-cockpit-execution-plan.md). Requirements: [im
 
 ## Resume here
 
+- Active follow-up: [PR #1 review remediation](../notes/2026-10-26-pr1-review-remediation.md), R1–R5 implemented; backend238/frontend188/typecheck/build304 PASS. Runtime-data history sanitization/push pending. M09 remains next implementation milestone after review closure.
+
 - Publication follow-up: [PR #1](https://github.com/monsteruk-crm/SuperCheeto/pull/1) is open against `master`; implementation commit `c760df1` pushed on `vercel-ai`. Standalone TypeScript errors are resolved; all final checks pass. Next implementation milestone remains M09-T01.
 
 - M08-T01–T09 COMPLETE. [M08 acceptance](../notes/2026-10-26-m08-acceptance.md) maps tasks, 32 shared v6 fixtures, deterministic races/flood, actual two-client WS and rendered evidence. [ADR 0019](../adr/0019-owned-full-auto-scheduling.md) accepted for this scope. Historical M00–M07 entries remain intact.
@@ -493,3 +495,10 @@ M04 and M05 COMPLETE: protocol v4 frozen reruns/targets/retention, four-panel ma
 - `cd frontend && npx tsc --noEmit` PASS; `npm run build` PASS (304 modules). Current STATUS/frontend runbook corrected; historical milestone acceptance records retain their original results.
 - Published the accumulated cockpit source, contracts, tests, docs and acceptance screenshots from `vercel-ai` to [PR #1](https://github.com/monsteruk-crm/SuperCheeto/pull/1), targeting `master`. Implementation commit `c760df1` is pushed. Local memory databases/editor backups are ignored and remain local. User RAG files and private configuration remain outside the change.
 - Final pre-publication suites: backend 226 PASS; frontend 186 PASS; standalone TypeScript PASS; build304 PASS. Staged scan excludes memory databases, backups, private environment and RAG data. Two whitespace findings in newly staged files corrected. Remote master/vercel-ai tips verified directly; normal fetch hit a pre-existing broken local Codex checkpoint ref, which was left intact.
+
+
+## PR #1 review checkpoint — 26 October 2026
+- R1–R5 implemented: exactly-once shielded disconnect cleanup; all-answer cancellation before epoch advance; ignored/untracked runtime RAG artifacts with local bytes preserved; audio-overlap-only STT/transcript deduplication; separately acknowledged status reads with no recursive polling.
+- Focused tests PASS: hub3, STT9, transcript7, transport71 (real local sockets), frontend transport14. No paid inference/audio/native checks. Two test harness assertions corrected; acceptance-race instrumentation now uses direct cancellation primitives without helper recursion.
+- PR publication audit previously checked staged paths only and missed already committed ancestor WAL changes. Correcting description and rebuilding only this PR's unmerged history without runtime database paths; preserve a local recovery ref and use a checked branch lease. Shared master history is outside this scoped cleanup. Full regression/data/history checks pending.
+- Final code gate PASS: backend238, frontend188, standalone TypeScript zero errors, build304. Local RAG hashes: all3 files unchanged. Next: commit fixes, rebuild only introduced PR commits without runtime data paths, verify trees/objects and publish with an explicit branch lease; update PR description/results.

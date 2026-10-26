@@ -118,6 +118,7 @@ class StreamingTranscriber:
         self._last_final_time = 0.0
         self._last_live_text = ""
         self._last_final_words: List[str] = []
+        self._last_final_words_end: Optional[float] = None
         self._lock = asyncio.Lock()
 
     @staticmethod
@@ -151,14 +152,18 @@ class StreamingTranscriber:
             seen += 1
         return len(text)
 
-    def _new_final_text(self, text: str) -> str:
+    def _new_final_text(self, text: str, *, t0: Optional[float] = None, t1: Optional[float] = None) -> str:
         normalized_words = self._normalized_words(text)
         if not normalized_words:
             return ""
+        previous_words = self._last_final_words if (
+            t0 is not None and self._last_final_words_end is not None
+            and t0 < self._last_final_words_end
+        ) else []
         if len(normalized_words) < 3:
+            self._last_final_words = normalized_words
+            self._last_final_words_end = t1
             return text.strip()
-
-        previous_words = self._last_final_words
         overlap = 0
         max_overlap = min(len(previous_words), len(normalized_words))
         for candidate in range(max_overlap, 0, -1):
@@ -172,6 +177,7 @@ class StreamingTranscriber:
         start_offset = self._word_start_offset(text, overlap)
         new_text = text[start_offset:].lstrip()
         self._last_final_words = normalized_words
+        self._last_final_words_end = t1
         return new_text
 
     def reset_state(self) -> None:
@@ -180,6 +186,7 @@ class StreamingTranscriber:
         self._last_final_time = 0.0
         self._last_live_text = ""
         self._last_final_words = []
+        self._last_final_words_end = None
 
     async def load_model(self) -> None:
         def _load() -> WhisperModel:
@@ -259,7 +266,7 @@ class StreamingTranscriber:
                 continue
             if t1 > cutoff:
                 continue
-            text = self._new_final_text(seg.text.strip())
+            text = self._new_final_text(seg.text.strip(), t0=t0, t1=t1)
             if not text:
                 continue
             self._segment_id += 1

@@ -81,3 +81,6 @@ pnpm-debug.log*
 /.mcp_memory/
 /.project-memory/
 *.bak
+
+# Runtime RAG index and SQLite sidecars (may contain personal documents)
+/backend/data/

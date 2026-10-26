@@ -205,7 +205,7 @@ Payload:
 { "type": "get_command_status", "protocolVersion": 2, "backendInstanceId": "<uuid>", "sessionEpoch": 3, "commandId": "<uuid>", "queryCommandId": "<uuid>" }
 ```
 - Purpose: reconcile an unacknowledged command without repeating execution.
-- Response: `command_status`.
+- Response: `command_status` keyed by `queryCommandId`, then `command_ack` keyed by this status request's own `commandId`. A status read has its own acknowledgement deadline; expiry is final/unknown and never recursively requests another status read.
 
 ### `create_snapshot`
 Payload:
@@ -428,6 +428,7 @@ Payload:
 - Owner disconnect cancels owned jobs, invalidates pending detection, releases control, and pauses AUTO. The session epoch is incremented on release, so the next claimant must renegotiate (`hello`) before sending commands.
 - A second window claims released control explicitly; control is never transferred or armed silently.
 - Reconnect re-negotiates. Retained client cards become historical records; stale events cannot mutate new jobs.
+- Before `sessionEpoch` increments on transcript clear or capture start/stop, active manual and AUTO answers are definitively superseded in their original epoch; partial text and frozen evidence remain. Failed sends/broadcasts invoke the same exactly-once disconnect cleanup as normal socket close, releasing control.
 - `sessionEpoch` increments on owner release, transcript clear, and capture start/stop. `audioEpoch` is new for every capture restart.
 - A legacy client cannot cancel a different connection's job; it receives a scoped `not_owner` error. Legacy `run_query` is also rejected while another connection holds the lease.
 - Shared `status`, `transcript_live`, `transcript_segment`, `audio_level`, `audio_sources`, `models_*`, `rag_*`, and `benchmark_*` events remain broadcast. Request chunks, completions, and errors are sent only to the owning connection.

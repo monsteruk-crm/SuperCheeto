@@ -524,9 +524,13 @@ class RequestLifecycleTests(TransportTestBase):
         status = await owner.wait_for("command_status")
         self.assertEqual(status["status"], "accepted")
         self.assertTrue(status["requestId"])
+        status_ack = await owner.wait_for("command_ack", predicate=lambda m:m.get("commandId")=="status-1")
+        self.assertTrue(status_ack["accepted"])
         await owner.command("get_command_status", "status-2", queryCommandId="never-sent")
         unknown = await owner.wait_for("command_status", predicate=lambda m: m.get("commandId") == "never-sent")
         self.assertEqual(unknown["status"], "unknown")
+        unknown_ack = await owner.wait_for("command_ack", predicate=lambda m:m.get("commandId")=="status-2")
+        self.assertTrue(unknown_ack["accepted"])
         self.assertEqual(len(self.generation_calls), 1)
 
     async def test_reconciliation_returns_outcome_if_its_lookup_is_pruned_by_the_query(self) -> None:
@@ -604,6 +608,76 @@ class RequestLifecycleTests(TransportTestBase):
         self.assertFalse(rejected["accepted"])
         self.assertEqual(rejected["code"], ErrorCode.INCOMPATIBLE_VERSION.value)
         self.assertEqual(owner.of_type("assistance_state"), [])
+
+
+    async def test_stop_listening_finishes_manual_answer_in_its_original_epoch(self):
+        async def runner(**kwargs):
+            await kwargs["on_stream_delta"]("Retained partial")
+            await self.generation_release.wait()
+            await kwargs["on_stream_delta"](" must not arrive")
+            return SimpleNamespace(text="Retained partial must not arrive", latency_ms=1)
+
+        self.controller._generation_runner = runner
+        self.add_speech("please explain the rollback plan")
+        owner = await self.connect("owner", protocol_version=4)
+        await owner.command("claim_control", "claim")
+        await owner.wait_for("command_ack", predicate=lambda m:m.get("commandId")=="claim")
+        accepted = await self._start_answer(owner)
+        await owner.wait_for("answer_chunk")
+        task = self.controller._answer_tasks[accepted["requestId"]]
+        epoch = self.controller.lease.session_epoch
+        self.controller.state.running = True
+        await owner.send({"type":"stop_transcription"})
+        finished = await owner.wait_for("answer_finished")
+        await owner.wait_for("control_state", predicate=lambda m:m.get("sessionEpoch",0)>epoch)
+        self.assertEqual(finished["sessionEpoch"], epoch)
+        self.assertEqual(finished["status"], "superseded")
+        self.assertEqual(finished["text"], "Retained partial")
+        record = self.controller.requests.get(accepted["requestId"])
+        self.assertTrue(record.terminal)
+        self.assertFalse(self.controller.requests.is_busy())
+        self.release_generation()
+        await asyncio.gather(task, return_exceptions=True)
+        self.assertEqual(len(owner.of_type("answer_chunk")), 1)
+        self.assertEqual(len(owner.of_type("answer_finished")), 1)
+
+    async def _failed_send_releases_control(self, broadcast=False, from_generation=False):
+        self.add_speech("please explain the rollback plan")
+        owner = await self.connect("owner")
+        observer = await self.connect("observer")
+        await owner.command("claim_control", "claim")
+        await owner.wait_for("command_ack", predicate=lambda m:m.get("commandId")=="claim")
+        accepted = await self._start_answer(owner)
+        await asyncio.wait_for(self.generation_started.wait(), 1)
+        info = self.controller.hub.connection(owner.connection_id)
+        hook = mock.AsyncMock(wraps=self.controller._on_client_disconnect)
+        self.controller.hub._on_disconnect = hook
+        with mock.patch.object(info.websocket, "send", side_effect=ConnectionError("synthetic send failure")):
+            if from_generation:
+                self.release_generation()
+            elif broadcast:
+                await self.controller.hub.broadcast("test_failure", {})
+            else:
+                self.assertFalse(await self.controller.hub.send_to(owner.connection_id, "test_failure", {}))
+            await observer.wait_for("control_state", predicate=lambda m:m.get("ownerConnectionId") is None)
+            await asyncio.wait_for(info.disconnect_task, 1)
+        hook.assert_awaited_once_with(info)
+        record = self.controller.requests.get(accepted["requestId"])
+        self.assertTrue(record.terminal)
+        observer.session_epoch = self.controller.lease.session_epoch
+        await observer.command("claim_control", "replacement-claim")
+        ack = await observer.wait_for("command_ack", predicate=lambda m:m.get("commandId")=="replacement-claim")
+        self.assertTrue(ack["accepted"])
+        self.assertEqual(self.controller.lease.owner_connection_id, observer.connection_id)
+
+    async def test_targeted_send_failure_releases_the_owner_lease(self):
+        await self._failed_send_releases_control()
+
+    async def test_broadcast_send_failure_releases_the_owner_lease(self):
+        await self._failed_send_releases_control(broadcast=True)
+
+    async def test_generation_send_failure_can_cancel_its_own_job_without_deadlock(self):
+        await self._failed_send_releases_control(from_generation=True)
 
 
 class LegacyCompatibilityTests(TransportTestBase):

@@ -412,6 +412,8 @@ class AppController:
     async def _invalidate_session(self, reason: str) -> None:
         """Bump the server-owned epoch and tell every connection."""
         await self.auto.invalidate(reason)
+        for record in list(self.requests.running()):
+            await self._cancel_answer_record(record, AnswerStatus.SUPERSEDED, reason)
         await self.questions.reset()
         self.lease.invalidate(reason)
         logger.info("Session epoch invalidated (%s): sessionEpoch=%s", reason, self.lease.session_epoch)
@@ -693,6 +695,7 @@ class AppController:
                 **({"result": self._reconciliation_result(connection.connection_id, query_command_id, outcome)} if self._protocol_version(connection.connection_id) >= 4 else {}),
             },
         )
+        await self._send_ack(connection.connection_id, self.commands.get(connection.connection_id, command_id))
 
     async def _v2_interaction_state(self, connection: ConnectionInfo, data: dict, command_id: str) -> None:
         try:

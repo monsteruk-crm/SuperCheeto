@@ -23,3 +23,5 @@
 - [ADR 0018: bounded question proposals and Gateway routing](0018-bounded-question-proposals-and-gateway-routing.md) — M07, protocol v5 and Gateway-only HTTP routing.
 
 - [ADR 0019: owned FULL AUTO scheduling](0019-owned-full-auto-scheduling.md) — accepted M08, protocol v6 and synthetic scheduler/race acceptance.
+
+- [ADR 0020: review lifecycle cleanup and local runtime data](0020-review-lifecycle-and-local-data-safety.md) — PR #1 remediation.

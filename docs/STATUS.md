@@ -1,6 +1,7 @@
 # Status
 
 ## What works end-to-end
+- PR #1 review R1–R5 fixed: exactly-once disconnect/lease cleanup, definitive manual cancellation before epoch changes, overlapping-audio-only deduplication and finite acknowledged reconciliation. Full checks: backend238/frontend188/typecheck/build304 PASS. Runtime RAG files ignored/untracked, local bytes preserved; unmerged history sanitization pending publication. [Review evidence](notes/2026-10-26-pr1-review-remediation.md).
 - Frontend standalone TypeScript check passes: `src/vite-env.d.ts` loads Vite client types for the three `import.meta.env` reads. Production build also passes (304 modules). This resolves the historical M00–M08 baseline errors.
 - M08 FULL AUTO is complete within synthetic/local-service scope: explicit session arm, one active/newest pending answer, manual priority, review gates, holds/deferred publication, source-linked correction and lifecycle disarm. Protocol v6; 226 backend/186 frontend tests and build304 PASS; standalone TypeScript now passes after the Vite typing follow-up. No paid inference/audio/native acceptance in M08. [Evidence](notes/2026-10-26-m08-acceptance.md), [ADR 0019](adr/0019-owned-full-auto-scheduling.md).
 - Backend service runs via `python -m app.main` and serves WebSocket on `ws://127.0.0.1:8765`.

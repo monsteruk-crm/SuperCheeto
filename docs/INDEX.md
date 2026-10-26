@@ -1,6 +1,7 @@
 # Docs Index
 
 ## Current status
+- [PR #1 review remediation](notes/2026-10-26-pr1-review-remediation.md): disconnects, manual cancellation, repeated speech, reconciliation and runtime data cleanup.
 - Standalone TypeScript baseline resolved; current checks and publication follow-up are in [STATUS](STATUS.md) and the [progress ledger](plans/live-helper-cockpit-progress.md).
 - [M08 FULL AUTO acceptance](notes/2026-10-26-m08-acceptance.md): owned scheduling, holds, deferred publication and synthetic races.
 - [M07 acceptance and Gateway routing audit](notes/2026-10-26-m07-acceptance.md).
@@ -15,6 +16,7 @@
 - [WebSocket and payload contracts](API.md)
 
 ## ADR index
+- [ADR 0020: review lifecycle cleanup and local runtime data](adr/0020-review-lifecycle-and-local-data-safety.md).
 - [ADR 0019: owned FULL AUTO scheduling](adr/0019-owned-full-auto-scheduling.md) — accepted M08.
 - [ADR 0018: bounded question proposals and Gateway routing](adr/0018-bounded-question-proposals-and-gateway-routing.md).
 - [ADR index](adr/INDEX.md) - includes audio discovery, accepted M03 protocol v2 transport (ADR 0012), [transcript-text model/streaming (ADR 0013)](adr/0013-stream-transcript-text-answers.md), [protocol v3 timing/model-readiness (ADR 0014)](adr/0014-protocol-v3-timing-and-model-readiness.md), and [safe Markdown rendering (ADR 0015)](adr/0015-safe-markdown-answer-rendering.md)

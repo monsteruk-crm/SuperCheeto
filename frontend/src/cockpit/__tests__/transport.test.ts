@@ -205,6 +205,40 @@ describe('WSClient send outcomes (M03-T04/T07)', () => {
     expect(status?.queryCommandId).toBe('cmd-lost')
   })
 
+  it('settles the status request separately from the queried command and stops polling', async () => {
+    client.connect()
+    const socket = FakeWebSocket.instances[0]
+    socket.open()
+    socket.receive(helloAck())
+    client.send({type:'run_context_query',commandId:'lost-original'})
+    vi.advanceTimersByTime(ACK_TIMEOUT_MS + 1)
+    const status = socket.lastSent('get_command_status')!
+    const statusAck = client.waitForAck(status.commandId)
+    socket.receive({...helloAck(),type:'command_status',commandId:'lost-original',status:'accepted'})
+    socket.receive({...helloAck(),type:'command_ack',commandId:status.commandId,accepted:true})
+    await expect(statusAck).resolves.toEqual({ok:true,commandId:status.commandId})
+    vi.advanceTimersByTime(ACK_TIMEOUT_MS * 4)
+    expect(socket.sentOfType('get_command_status')).toHaveLength(1)
+    expect(socket.sentOfType('run_context_query')).toHaveLength(1)
+    expect(handlers.onCommandUnknown).toHaveBeenCalledTimes(1)
+  })
+
+  it('never reconciles a timed-out reconciliation request recursively', async () => {
+    client.connect()
+    const socket = FakeWebSocket.instances[0]
+    socket.open()
+    socket.receive(helloAck())
+    client.send({type:'claim_control',commandId:'lost-original'})
+    vi.advanceTimersByTime(ACK_TIMEOUT_MS + 1)
+    const status = socket.lastSent('get_command_status')!
+    const statusAck = client.waitForAck(status.commandId)
+    // Legacy servers answer the queried identity without acknowledging the read.
+    socket.receive({...helloAck(),type:'command_status',commandId:'lost-original',status:'accepted'})
+    vi.advanceTimersByTime(ACK_TIMEOUT_MS * 4)
+    await expect(statusAck).resolves.toMatchObject({ok:false,code:'not_ready'})
+    expect(socket.sentOfType('get_command_status')).toHaveLength(1)
+  })
+
   it('marks pending commands unknown and does not replay them after a lost connection', async () => {
     client.connect()
     const socket = FakeWebSocket.instances[0]

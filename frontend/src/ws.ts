@@ -277,7 +277,7 @@ export class WSClient {
     }
     if (message.type !== 'hello') {
       // `hello` needs no ack deadline: a legacy backend simply ignores it.
-      this.trackAck(commandId)
+      this.trackAck(commandId, message.type !== 'get_command_status')
     }
     return { ok: true, commandId }
   }
@@ -309,7 +309,7 @@ export class WSClient {
     })
   }
 
-  private trackAck(commandId: string) {
+  private trackAck(commandId: string, reconcileOnTimeout = true) {
     let resolveFn: (result: SendResult) => void = () => undefined
     const promise = new Promise<SendResult>((resolve) => {
       resolveFn = resolve
@@ -326,7 +326,7 @@ export class WSClient {
         message: 'No acknowledgement within five seconds; acceptance is unknown.'
       })
       // Reconcile without repeating the command.
-      this.requestCommandStatus(commandId)
+      if (reconcileOnTimeout) this.requestCommandStatus(commandId)
     }, ACK_TIMEOUT_MS)
     this.pending.set(commandId, { promise, resolve: resolveFn, timer })
   }
