@@ -27,3 +27,7 @@ Initial regression runs exposed two test harness mistakes (a misplaced count ass
 The earlier publication scan inspected staging only and missed previously tracked WAL data in an ancestor commit. That exclusion claim was incomplete. This follow-up removes runtime paths from every PR-introduced commit, verifies both trees and introduced blob IDs, and corrects the PR description. The shared master branch is not rewritten, and already published commits/blobs may remain in base history or hosting caches. Repository-level historical/cached-data removal is outside this branch-scoped remediation. No personal document content or absolute document path is reproduced here.
 
 A local recovery ref `local-pr1-before-rag-cleanup-20261026` retains the prior branch for recovery and is not pushed. Historical commit hashes in older milestone/publication notes refer to the pre-review branch. Current code and review evidence are in PR #1.
+
+## Publication
+
+PASS: checked lease update published the sanitized PR branch, and PR #1's description now lists all five fixes, current verification and the historical-data boundary. GitHub's six-commit list and head `266eeb1` were checked against the local branch; every published commit tree omitted runtime data. The final handoff documentation commit follows that audited tip. Local recovery history remains local. All five requested findings are closed within this PR's scope.
