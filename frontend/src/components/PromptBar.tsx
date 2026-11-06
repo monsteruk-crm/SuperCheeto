@@ -16,6 +16,7 @@ type Props = {
   canRun: boolean
   isQuerying: boolean
   status: string
+  backendError: string | null
   isRunning: boolean
   audioMode: 'system' | 'mic'
   onAudioModeChange: (mode: 'system' | 'mic') => void
@@ -50,6 +51,7 @@ const PromptBar: React.FC<Props> = ({
   canRun,
   isQuerying,
   status,
+  backendError,
   isRunning,
   audioMode,
   onAudioModeChange,
@@ -75,6 +77,7 @@ const PromptBar: React.FC<Props> = ({
     <section className="prompt-bar">
       <div className="prompt-sections">
         <section className="prompt-panel">
+          {backendError ? <div className="backend-error-banner">Backend error: {backendError}</div> : null}
           <div className="prompt-controls">
             <div className="status-pill">{status}</div>
             <div className={`meter-wrap system ${audioMode === 'system' ? 'active' : 'inactive'}`} aria-label="System audio level">

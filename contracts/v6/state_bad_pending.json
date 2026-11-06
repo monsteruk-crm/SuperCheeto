@@ -1,0 +1,28 @@
+{
+  "name": "state_bad_pending",
+  "payload": {
+    "protocolVersion": 6,
+    "backendInstanceId": "backend-1",
+    "sessionEpoch": 1,
+    "connectionId": "owner-1",
+    "commandId": null,
+    "type": "assistance_state",
+    "stateSeq": 1,
+    "autoArmed": true,
+    "pauseReason": "ready",
+    "lastError": null,
+    "listening": true,
+    "detectionEnabled": true,
+    "holdReasons": [],
+    "configRevision": 1,
+    "configurationReady": true,
+    "generationBusy": false,
+    "activeAnswerId": null,
+    "pendingCandidate": {
+      "candidateId": "candidate",
+      "candidateRevision": 0
+    },
+    "deferredAnswerId": null
+  },
+  "expectedCode": "invalid_payload"
+}

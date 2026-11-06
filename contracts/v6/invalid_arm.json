@@ -1,0 +1,14 @@
+{
+  "name": "invalid_arm",
+  "payload": {
+    "protocolVersion": 6,
+    "backendInstanceId": "backend-1",
+    "sessionEpoch": 1,
+    "commandId": "command-1",
+    "type": "set_auto",
+    "expectedConfigRevision": 1,
+    "armed": 1,
+    "mode": "full_auto"
+  },
+  "expectedCode": "invalid_payload"
+}

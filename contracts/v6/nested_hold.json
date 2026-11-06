@@ -1,0 +1,20 @@
+{
+  "name": "nested_hold",
+  "payload": {
+    "protocolVersion": 6,
+    "backendInstanceId": "backend-1",
+    "sessionEpoch": 1,
+    "commandId": "command-1",
+    "type": "interaction_state",
+    "selectedSnapshotIds": [],
+    "openEditors": [],
+    "inspectedAnswerIds": [],
+    "publicationHold": true,
+    "holdReasons": [
+      [
+        "target"
+      ]
+    ]
+  },
+  "expectedCode": "invalid_payload"
+}

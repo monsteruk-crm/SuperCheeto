@@ -1,0 +1,18 @@
+{
+  "realEmbeddingIngest": true,
+  "armed": true,
+  "answer": {
+    "chars": 94,
+    "auto": true,
+    "retrieved": true,
+    "timing": [
+      "Model: openai/gpt-5.6-sol",
+      "Token usage: input 187 \u00b7 output 57 \u00b7 total 244",
+      "Retrieval: used",
+      "Backend retrieval: 737.4 ms",
+      "Backend generation: 1760.8 ms",
+      "First answer delta: 2140.4 ms after acceptance",
+      "Backend terminal: 2501.9 ms after acceptance"
+    ]
+  }
+}

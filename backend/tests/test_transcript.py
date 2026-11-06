@@ -13,7 +13,7 @@ class TranscriptStoreTests(unittest.TestCase):
         store = TranscriptStore()
 
         self.assertTrue(store.add_segment(segment(1, 1.0, 2.0, "How many child processes do they initiate?")))
-        self.assertFalse(store.add_segment(segment(2, 2.4, 3.4, "How many child processes do they initiate?")))
+        self.assertFalse(store.add_segment(segment(2, 1.4, 2.4, "How many child processes do they initiate?")))
 
         self.assertEqual([seg.text for seg in store.segments()], ["How many child processes do they initiate?"])
 
@@ -21,7 +21,7 @@ class TranscriptStoreTests(unittest.TestCase):
         store = TranscriptStore()
 
         self.assertTrue(store.add_segment(segment(1, 1.0, 2.0, "It's the riddle?")))
-        self.assertFalse(store.add_segment(segment(2, 2.2, 3.0, "  it's   the riddle ")))
+        self.assertFalse(store.add_segment(segment(2, 1.2, 2.2, "  it's   the riddle ")))
 
         self.assertEqual(len(store.segments()), 1)
 
@@ -38,9 +38,18 @@ class TranscriptStoreTests(unittest.TestCase):
                 )
             )
         )
-        self.assertFalse(store.add_segment(segment(2, 4.4, 5.2, "Please make sure your solution runs in linear time.")))
-
+        self.assertFalse(store.add_segment(segment(2, 3.4, 4.2, "Please make sure your solution runs in linear time.")))
         self.assertEqual(len(store.segments()), 1)
+
+    def test_keeps_nonoverlapping_repetition_and_new_audio_epochs(self) -> None:
+        store = TranscriptStore()
+        text = "Please repeat that sentence."
+        for index, start in enumerate((1, 2, 31), start=1):
+            self.assertTrue(store.add_segment(segment(index, start, start+1, text)))
+        store.set_audio_epoch("another-capture")
+        self.assertTrue(store.add_segment(segment(1, 1, 2, text)))
+
+        self.assertEqual(len(store.segments()), 4)
 
     def test_keeps_short_repeated_text(self) -> None:
         store = TranscriptStore()

@@ -1,9 +1,9 @@
 # Live Transcript Desk (MVP)
 
-Desktop app MVP that captures system audio locally, transcribes near-real-time with faster-whisper, and lets you run preset/custom prompts against selected transcript text.
+Desktop app MVP that captures system audio locally, transcribes near-real-time with faster-whisper, and provides a four-panel helper desk with manual answers, optional question proposals and explicitly armed FULL AUTO for answering frozen transcript context. Streamed answer Markdown is rendered in the desk; audio capture and transcription remain local.
 
 ## Architecture
-- **Backend (Python)**: captures system monitor audio or microphone input via Pulse/PipeWire, streams to faster-whisper, serves a WebSocket API, and calls OpenAI.
+- **Backend (Python)**: captures system monitor audio or microphone input via Pulse/PipeWire, streams to faster-whisper, serves a WebSocket API, and calls Vercel AI Gateway for cloud AI.
 - **Frontend (Electron + React)**: renders transcript, supports selection, and displays model responses.
 - **Transport**: WebSocket on `ws://127.0.0.1:8765`.
 
@@ -11,7 +11,7 @@ Desktop app MVP that captures system audio locally, transcribes near-real-time w
 ```
 backend/   # Python services
 frontend/  # Electron + React UI
-docs/      # Prompts and design briefs
+docs/      # Prompts and design briefs/
 ```
 
 ## Quick Start
@@ -19,6 +19,12 @@ docs/      # Prompts and design briefs
 ```bash
 ./scripts/dev.sh start
 ```
+
+This starts both services and prints a recent backend log excerpt in the terminal so AI request failures are easier to diagnose immediately.
+The desktop UI also shows the latest backend error in the prompt area.
+Only a Responses HTTP 404 before content permits same-model Chat Completions fallback through Gateway. Other failures retain partial output without automatic paid retries.
+Deprecated `*-chat-latest` selections are automatically remapped to supported base models before the request is sent.
+Responses API requests use `stream: true`; genuine deltas appear before completion. Empty output remains empty.
 
 Stop both:
 ```bash
@@ -31,6 +37,8 @@ Other helpers:
 ./scripts/dev.sh logs
 ./scripts/dev.sh restart
 ```
+
+Use `./scripts/dev.sh logs` for the full backend/frontend log tail if the startup excerpt is not enough.
 
 ### Launch production profile (no Vite/watch)
 ```bash
@@ -55,10 +63,7 @@ Production notes:
 Notes:
 - `./scripts/dev.sh stop` also cleans up lingering backend listeners on `127.0.0.1:${BACKEND_WS_PORT:-8765}` when no PID file is present.
 - `./scripts/dev.sh stop` also cleans up lingering frontend dev processes for this repo (Vite/Electron toolchain) when no PID file is present.
-- To run backend on a non-default WebSocket port with the launcher, set `BACKEND_WS_PORT` and `WS_PORT` together, for example:
-  ```bash
-  BACKEND_WS_PORT=8766 WS_PORT=8766 ./scripts/dev.sh start
-  ```
+- The production UI currently connects to port 8765 in `frontend/src/App.tsx`. `BACKEND_WS_PORT` changes launcher listener checks; `WS_PORT` changes the backend listener. Changing those alone does not redirect the UI. Use port 8765 for normal launches. Isolated acceptance redirects the socket in its test harness.
 
 ### Backend
 ```bash
@@ -69,7 +74,7 @@ pip install -r requirements.txt
 python -m app.main
 ```
 
-Set `OPENAI_API_KEY` in `backend/.env` or the environment. Use `backend/.env.example` as a template.
+Set `AI_GATEWAY_API_KEY` in `backend/.env.local` or the environment. Use `backend/.env.example` as a template.
 
 Backend tests:
 ```bash
@@ -97,21 +102,39 @@ npm install
 npm run dev
 ```
 
+Frontend tests (deterministic, mocked — no live backend, audio, or paid calls):
+```bash
+cd frontend
+npm run test          # Vitest + jsdom + React Testing Library (run once)
+npm run test:watch    # watch mode
+```
+
+- Harness-only helpers/fixtures live under `frontend/src/cockpit/__tests__/` (fake clock, fake WebSocket transport, mocked Gateway/detector, messy-speech fixtures). They are test-only and are never imported by application code.
+- Backend tests remain Python `unittest` (see "Backend tests" above).
+
 ## Audio Setup (Ubuntu)
 - Requires PulseAudio or PipeWire (with Pulse shim).
-- The backend resolves default monitor/mic sources using `pactl info`.
+- Install the audio stack and routing tools with:
+  ```bash
+  sudo apt install -y pipewire pipewire-bin pipewire-pulse wireplumber pulseaudio-utils pavucontrol
+  ```
+- Package mapping:
+  - `pipewire-bin` provides `pw-cat` and `pw-dump`
+  - `wireplumber` provides `wpctl`
+  - `pulseaudio-utils` provides `pactl`
+  - `pipewire-pulse` provides the Pulse shim used by `pactl`-style discovery on PipeWire
+- The backend resolves default monitor/mic sources using `pactl info` when available, and falls back to PipeWire-native `pw-dump` metadata on minimal installs that do not ship `pulseaudio-utils`.
 - If input routing is wrong, install and open `pavucontrol` (`sudo apt install -y pavucontrol`), then in the **Recording** tab set the backend (`python`) input to a `Monitor of ...` source.
 - If no monitor/mic sources are found, select one manually in the UI or send it over WebSocket.
-- Microphone transcription now defaults to English language hint (`STT_MIC_LANGUAGE=en`) to reduce accent-related auto-detection flips. If you primarily speak another language, set `STT_MIC_LANGUAGE` in `backend/.env` (for example `it`).
-- Optional language overrides:
-  - `STT_MIC_LANGUAGE` (default `en`)
-  - `STT_SYSTEM_LANGUAGE` (default auto-detect)
-  - `STT_LANGUAGE` (global fallback if per-mode values are unset)
+- Transcription is forced to English for system and microphone capture by `AppController._language_for_mode`. The legacy `STT_*LANGUAGE` settings do not change that runtime choice.
 - Silence/hallucination guard tuning:
   - `STT_MIN_DECODE_RMS` (default `0.0010`) skips STT decode on near-silent windows.
   - `STT_NO_VAD_FALLBACK_MIN_RMS` (default `0.0025`) only allows no-VAD fallback when signal energy is high enough.
 
 ## WebSocket Messages
+
+The cockpit negotiates `[6,5,4,3,2]`; protocol v6 owns AUTO, while v5 adds candidates/correction. The lists below summarize legacy/shared messages. See [API](docs/API.md) for scoped commands, payloads, ownership, reconnect and timing contracts.
+
 Backend → Frontend:
 - `transcript_live`: `{ text, t, streamKind?, sourceName? }`
 - `transcript_segment`: `{ segment }`
@@ -137,10 +160,30 @@ Frontend → Backend:
 - `rag_list`
 - `rag_clear`
 
-## OpenAI
-- Set `OPENAI_API_KEY` before running.
-- Default model: `gpt-4o` (override with `OPENAI_MODEL`).
-- RAG uses OpenAI embeddings by default (`RAG_EMBEDDING_MODEL=text-embedding-3-small`) and stores vectors locally in SQLite (`RAG_DB_PATH`).
+## Live Helper manual answering
+The Desk has four panels: raw transcript, a fallible questions inbox with detection disable/retry, working answers, and kept/previous answers. Choose 20/45/90 seconds and **Answer recent speech**, or select raw words and **Draft answer from selection**. **Make question** opens an editable human target; Reset restores its frozen source and Clear releases it. View raw highlights original source without hiding surrounding speech. **Pin this moment** preserves source without any generation call.
+
+Guide explicitly selects Preset or Custom, model and refresh. Saved custom text survives switching modes/reloads but is ignored in Preset mode; empty Custom cannot run. Human notes are separate editable context and are included only when selected. In Electron, capture shows a preview, enables inclusion and supports removal; ordinary browsers honestly disable native capture.
+
+Cards stream safe Markdown/GFM into HTML with code/lists/tables; raw HTML is disabled, remote images are not fetched and HTTP(S) links open outside Electron. Copy, Keep, Remove and Stop act on identified cards. Run again creates a new answer from server-frozen source, wording, instruction, notes, model/reasoning, screenshot and retrieved evidence, even after later changes. Keep makes no generation call. Details distinguish actual evidence/usage and backend versus client timings; absent facts remain unavailable. Reconnected historical cards are read-only; no paid command is replayed automatically.
+
+All panels scroll independently; pointer/keyboard separators persist in `cockpit-layout.v1`. Transcript + expands raw space and Reset layout restores defaults. Smaller windows use two-by-two panels. Possible questions, Working answers and Kept / previous automatically scroll to the bottom as content arrives or grows, including streamed answers. Scrolling up is temporary: the next content update follows the bottom again. See [completion evidence](docs/notes/2026-10-25-m04-m05-acceptance.md). Sound/Settings, question proposals/correction and FULL AUTO passed their milestone gates. Native and integrated acceptance passed in M09/M10, with the [recorded evidence and measurement limits](docs/notes/2026-10-26-m10-acceptance.md).
+
+## Vercel AI Gateway
+- Set `AI_GATEWAY_API_KEY` before running (or `VERCEL_OIDC_TOKEN` for Vercel deployments).
+- Default answer model: `google/gemini-3.8-flash` with low reasoning (override with `VERCEL_MODEL` or the existing model selector). Saved model choices and existing environment overrides are preserved; a fresh default does not replace them.
+- Realtime answers use transcript **text**, not a cloud voice session: local capture/STT → frozen text/context → Gateway Responses with `stream: true` → incremental answer text. Keep keys on the Python backend. See [ADR 0013](docs/adr/0013-stream-transcript-text-answers.md) for model discovery, the same-model Chat Completions 404 fallback, and remaining latency/quality evaluation.
+- Failed/incomplete/malformed or interrupted streams now fail visibly and retain delivered partial text; cancellation closes the upstream stream. Empty model output remains empty. Chat streaming requests usage, and time-to-first-text excludes reasoning/empty deltas. No live model latency or accuracy claim follows from the synthetic tests.
+- Base URL: `https://ai-gateway.vercel.sh/v1`. `AI_GATEWAY_BASE_URL` must resolve to that Gateway origin/path; alternate provider endpoints are rejected.
+- Old bare model IDs (e.g. `gpt-5.1`) are auto-prefixed to `openai/gpt-5.1`.
+- RAG uses Gateway embeddings (`RAG_EMBEDDING_MODEL=openai/text-embedding-3-small`) and stores vectors locally in SQLite (`RAG_DB_PATH`).
+- Audio capture and STT remain entirely local; no audio is sent to any cloud service.
+
+## Interview context and instructions
+
+In **Desk → Guide / profile**, choose **Custom** and enter instructions in the 10-row Custom instruction field. Instructions describe how to answer; personal facts belong in your CV or notes.
+
+In **Desk → Possible questions**, scroll down and expand **Human context notes · N/50** (return to Desk if Focus hides that column). Enter facts in **New note**, tick **Include in future answers**, then click **Add note**. Each saved note also has its own **Include in future answers** checkbox. Checked notes are included in subsequent answer requests; changing a note does not rewrite an existing answer. Notes are user-provided facts, not independently verified evidence. Unlike RAG, which retrieves selected document excerpts, checked notes are explicitly attached to future answers. Keep them concise and relevant.
 
 ## RAG document ingestion
 - Open **Settings** and use **Local RAG Documents**.
@@ -164,7 +207,7 @@ Frontend → Backend:
   - Speed-first aggregate score (0-100)
 - Response pane includes an editable pre-send selected-text textarea (collapses/expands via env-configurable rows).
 - Optional pricing override env var:
-  - `OPENAI_MODEL_PRICING_JSON='{"model-id":{"input":1.25,"output":10.0}}'` (USD per 1M tokens)
+  - `AI_GATEWAY_MODEL_PRICING_JSON='{"openai/gpt-5.6-sol":{"input":5.0,"output":30.0}}'` (USD per 1M tokens)
 
 ## First Run Checklist
 1) Start backend/frontend and confirm the System/Mic meters move with input (meters are active even before pressing Start).
@@ -172,3 +215,66 @@ Frontend → Backend:
 3) Launch the frontend and wait for the status pill to show `ready` or `transcribing`.
 4) Select text in the transcript pane, then run a preset prompt.
 docs/ingestion/alfonso_cv.md
+
+## Sound and Settings (M06)
+
+Open **Sound** in the Desk header for active input, system/microphone devices, quick switch, refresh and transcription Start/Stop. Opening or closing it changes no capture setting or answer. Escape/Done/Close/outside dismissal returns focus to Sound and preserves the raw selection, editor and reading position. The dialog owns keyboard focus while open; background capture/request shortcuts are blocked.
+
+The selected input and its meter remain in the header while Sound is closed. Levels continue when transcription stops. Quiet means RMS below 0.001 and peak below 0.005, not “no voice”; peak at least 0.98 holds a clipping warning for 500ms. Samples become stale after two seconds without matching-source telemetry; disconnect and unavailable devices are distinct. Freshness uses client receive time, not subtraction of backend timestamps.
+
+Start or stop transcription directly beside the audio meter in the main Desk/Focus header. A moving meter indicates input monitoring; click **Start transcription** to turn speech into text. **Sound** opens device preferences and retains the same controls. Guide / profile opens a viewport-contained, scrollable panel. Answer errors appear in a prominent alert above the answer controls; screenshot capability errors explain how to retry with transcript only or select an image-capable model.
+
+Device choices reflect backend acknowledgements/fallbacks. Saved choices restore once per connection; refresh does not repeatedly force them back. An inactive device change updates that preference/monitor only. A deliberate active mode/device change invalidates old source work, preserves previous cards and restarts transcription if running. Unchanged selections do not restart. Monitoring releases devices on backend shutdown.
+
+The original separate Settings screen retains query preferences, RAG documents, model catalog, benchmark tests/images, results/logs/history and stored data. Desk and Settings stay mounted so navigation preserves unsaved edits. Existing preference/storage keys are unchanged. RAG Clear applies to the configured index; acceptance used a temporary index and never cleared user documents. See [M06 evidence](docs/notes/2026-10-26-m06-acceptance.md). M06 used synthetic audio; subsequent hardware/STT/native evidence is recorded in M09/M10.
+
+### Question proposals and correction (M07)
+
+Possible questions now suggests fallible interpretations of finalized local transcript text after control negotiation. Use **Suggest questions** to disable detection, or **Retry detection** after a failure. Review source excerpts and **View raw**, select a question, or use **Make question** and **Save question to inbox** when a request was missed. Questions support edit/split/merge/dismiss/undo. **Wrong question** retains the original answer/source and lets you **Correct and draft answer**. Human context notes remain optional, explicitly included claims.
+
+Detection uses Vercel AI Gateway with `DETECTOR_MODEL` (default `google/gemini-3.5-flash-lite`) and `DETECTOR_DEBOUNCE` (default 1 second, clamped 0.8–1.2). Partials/meters never trigger it; direct answers work independently. Detection history is limited to 200 immutable revisions per source session, with visible capacity rejection. No new persistent transcript database or armed AUTO preference is added. Real audio/model quality acceptance remains M09/M10.
+
+Cloud answers, detector, embeddings, catalog and benchmarks all use the shared Gateway HTTP client. `AI_GATEWAY_BASE_URL`, when set, must be `https://ai-gateway.vercel.sh/v1` (an optional trailing slash is accepted). Direct-provider endpoints are rejected before authentication. Restart the backend after configuration changes. See [API v5](docs/API.md#protocol-v5-question-proposals-and-correction) and [M07 evidence](docs/notes/2026-10-26-m07-acceptance.md).
+
+### FULL AUTO (M08)
+Start transcription, leave Suggest questions enabled, choose your Guide/profile/model and wait for settings acknowledgement. Select **FULL AUTO** explicitly for this session. Only newly detected eligible questions generate drafts; existing inbox entries and human wording require a manual request. Every AUTO draft is unreviewed and source-linked.
+
+One answer runs at a time, with only the newest pending question queued. Selecting text, setting a target or editing Guide/questions/notes/Settings holds AUTO targeting and publication while capture continues. Completed held output waits until release and source revalidation. Sound alone does not hold AUTO. **Answer now** takes manual priority and retains the interrupted draft. **Wrong question** creates a linked corrected draft.
+
+**Pause AUTO** clears pending execution and lets the current answer finish. **Stop AUTO answer** retains partial output and pauses AUTO. Stopping listening, changing the active source, clearing transcript or losing control disarms AUTO. Reconnect/restart stays in Assist; armed state is never saved. Configuration/model/capacity failures are visible and never trigger automatic paid retries. See [M08 evidence](docs/notes/2026-10-26-m08-acceptance.md) and [protocol v6](docs/API.md#protocol-v6-owned-full-auto). Actual audio/model/native results are recorded in [M10 acceptance](docs/notes/2026-10-26-m10-acceptance.md).
+
+### Review lifecycle and local data safeguards
+Stopping listening, restarting capture or clearing transcript definitively supersedes active manual/AUTO generation before the session changes. Draft cards retain partial text and frozen source. A failed socket send releases control so a replacement window can claim it. Reconciliation uses separately acknowledged reads and stops after a read timeout. Repeated speech is deduplicated only when its audio overlaps.
+
+The RAG index under `backend/data/` (including SQLite WAL/SHM sidecars) is local runtime data and excluded from Git. Fresh checkouts create the index on first use; existing local indexes remain in place. Do not add runtime databases or document indexes to commits. See [PR #1 remediation](docs/notes/2026-10-26-pr1-review-remediation.md).
+
+
+## Native window controls (M09)
+
+**Pin window** keeps the window above others; it is separate from Keep answer and Pin this moment. **Focus answers** shows Working/Kept columns in the same window near900px wide, preserving streams, cards, raw/editor state and layout. **Return to Desk** restores the full workbench and previous window bounds/maximization. Sound, the selected-input meter and Settings stay accessible. Pin and Focus start off each launch; saved audio/model/layout preferences are unchanged.
+
+Answer uses `Ctrl/Command+Alt+Enter`; screen capture retains `Ctrl/Command+Alt+C`. **Window / shortcuts** reports registration results. If another app owns a global key, use the buttons or focused `Alt+Shift+Enter` (answer) / `Alt+Shift+C` (capture). Settings, dialogs and editable fields block background shortcuts. No global Escape is registered.
+
+With two screens, capture matches the primary display by ID. Wayland may show a sharing chooser: approve only your main screen. Only its single consent-selected source is accepted when display IDs are unavailable; ambiguous sources fail explicitly. While permission is pending, repeated capture is blocked. Capture is explicit and local; inclusion in a subsequent answer follows the existing screenshot checkbox.
+
+Electron31.7.7 keeps a functional resizable **opaque** Desk/Focus; native translucency is unavailable in this build. DevTools stays closed by default; use `OPEN_DEVTOOLS=1 npm run dev` from `frontend/` when needed. Verification commands: `cd frontend && npm test -- --run`, `cd frontend && npx tsc --noEmit`, `cd frontend && npm run build`. Native/audio evidence is recorded separately from unit tests.
+
+
+## Integrated acceptance (M10)
+
+Raw transcript rows are packed with zero vertical padding,18px line spacing at15px type, and compact LIVE/container spacing. Selection, source highlighting and scrolling are preserved. Question detection continues on new finalized speech after empty results; unchanged text is not repeatedly polled. Normal operation has no three-call or90second test limit.
+
+Current gates: backend239tests, frontend198tests, standalone TypeScript and production build305modules PASS. Actual Electron renderer/layout/Settings/RAG/image/AUTO checks and real system-audio→local STT→Gateway manual/AUTO with real embeddings/retrieval passed. Optional native translucency is unsupported. Spontaneous speech lacks reference-aligned STT/speech-end latency and accuracy measurements; absent metrics are unavailable.
+
+See [M10 evidence and screenshots](docs/notes/2026-10-26-m10-acceptance.md) and [isolated acceptance tooling](scripts/acceptance/README.md). The synthetic/live test harness has explicit bounds; do not use its watchdog-limited live mode as a normal continuous session. Original runtime RAG files remain ignored and untracked.
+
+
+## Completion and persistence
+
+The cockpit execution plan is complete through M11. [STATUS](docs/STATUS.md) provides the current handoff; [M10](docs/notes/2026-10-26-m10-acceptance.md) separates synthetic, real audio/Gateway and native results. Optional native translucency is unsupported; Desk and Focus use the accepted opaque fallback. Speech-aligned latency, STT accuracy and billed answer cost remain unmeasured or unavailable.
+
+Transcript, source snapshots, questions, cards and armed AUTO are session memory. Keep answer protects a card within that session; it does not save it across application exit. Preferences, layout, acknowledged human notes, benchmark tests/images/history and the local RAG index persist. See the [storage map](docs/db/INDEX.md).
+
+Use ordinary launchers for normal operation. [Acceptance scripts](scripts/acceptance/README.md) use isolated temporary profiles and databases; their bounded live mode is a test tool. The previous continuous operator session is historical evidence, not a service guaranteed to be running. Check current listeners before launch or cleanup.
+
+The main Desk now hides Kept / previous and gives Working answers both answer-column widths. On compact screens Working answers spans the bottom row; in Focus it fills the answer area. Existing kept cards remain in session but have no visible panel in this quick layout change.

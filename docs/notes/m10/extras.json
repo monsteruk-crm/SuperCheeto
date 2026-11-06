@@ -1,0 +1,27 @@
+[
+  {
+    "name": "real image upload/replace/full preview and test create/update/reload",
+    "result": "PASS"
+  },
+  {
+    "name": "image deletion validates missing refs; selected test deletion persists",
+    "result": "PASS"
+  },
+  {
+    "name": "actual rendered owned AUTO produces a source-linked unreviewed draft",
+    "result": "PASS"
+  },
+  {
+    "name": "real candidate edit/dismiss/undo and revision receipts",
+    "result": "PASS"
+  },
+  {
+    "name": "Stop listening disarms AUTO while meter remains mounted",
+    "result": "PASS"
+  },
+  {
+    "name": "real-service generation concurrency never exceeds one",
+    "result": "PASS",
+    "maxConcurrent": 1
+  }
+]

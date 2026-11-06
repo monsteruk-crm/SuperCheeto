@@ -1,0 +1,63 @@
+{
+  "name": "candidate_bad_auto_status",
+  "payload": {
+    "protocolVersion": 6,
+    "backendInstanceId": "backend-1",
+    "connectionId": "connection-1",
+    "sessionEpoch": 1,
+    "stateSeq": 1,
+    "type": "candidate_state",
+    "candidates": [
+      {
+        "candidateId": "candidate-1",
+        "candidateRevision": 1,
+        "wording": "Why?",
+        "state": "needs_review",
+        "reason": "Unclear referent",
+        "origin": "detector",
+        "sourceSpans": [
+          {
+            "segmentKey": "audio#1",
+            "revision": 1,
+            "start": 0,
+            "end": 6,
+            "t0": 0,
+            "t1": 1,
+            "sourceKind": "system",
+            "sourceName": "Synthetic",
+            "audioEpoch": "audio"
+          }
+        ],
+        "snapshot": {
+          "snapshotId": "snapshot-1",
+          "kind": "selection",
+          "text": "\ud83d\ude00 e\u0301 why",
+          "charCount": 8,
+          "sourceSpans": [
+            {
+              "segmentKey": "audio#1",
+              "revision": 1,
+              "start": 0,
+              "end": 6,
+              "t0": 0,
+              "t1": 1,
+              "sourceKind": "system",
+              "sourceName": "Synthetic",
+              "audioEpoch": "audio"
+            }
+          ],
+          "truncated": false,
+          "tentative": false,
+          "createdAt": 1,
+          "anchorSegmentKey": "audio#1"
+        },
+        "supersedes": [],
+        "sourceAnswerId": null,
+        "reviewReasons": [],
+        "autoStatus": "completed"
+      }
+    ],
+    "revisionCount": 1
+  },
+  "expectedCode": "invalid_payload"
+}

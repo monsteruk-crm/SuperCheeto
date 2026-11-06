@@ -1,0 +1,19 @@
+{
+  "name": "undo",
+  "expectedCode": null,
+  "payload": {
+    "protocolVersion": 5,
+    "backendInstanceId": "backend-1",
+    "sessionEpoch": 1,
+    "commandId": "command-1",
+    "type": "candidate_action",
+    "action": "undo",
+    "parents": [
+      {
+        "candidateId": "candidate-1",
+        "expectedRevision": 1
+      }
+    ],
+    "drafts": []
+  }
+}

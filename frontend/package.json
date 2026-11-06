@@ -8,18 +8,30 @@
     "dev": "concurrently -k \"vite\" \"tsc -w -p tsconfig.electron.json\" \"wait-on http://localhost:5173 file:dist-electron/main.cjs && VITE_DEV_SERVER_URL=http://localhost:5173 electron dist-electron/main.cjs\"",
     "build": "tsc -p tsconfig.electron.json && vite build",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "echo 'No linter configured'"
   },
   "dependencies": {
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.8",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^4.3.2",
     "concurrently": "^9.0.1",
     "electron": "^31.1.0",
+    "jsdom": "^25.0.1",
     "typescript": "^5.6.3",
     "vite": "^5.4.8",
+    "vitest": "^2.1.9",
     "wait-on": "^7.2.0"
   }
 }

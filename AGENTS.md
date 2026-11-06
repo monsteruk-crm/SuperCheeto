@@ -245,5 +245,6 @@ At the end of every meaningful iteration (feature/bugfix/refactor that changes b
 
 # Configuration Tips
 - Target Python version is `>=3.11`.
-- Backend requires `OPENAI_API_KEY` in environment or `backend/.env`.
+- Backend requires `AI_GATEWAY_API_KEY` (or `VERCEL_OIDC_TOKEN`) in environment or `backend/.env.local`.
+- Cloud AI uses Vercel AI Gateway; local STT/audio remain entirely local.
 - Keep `backend/requirements.txt` and `frontend/package.json` updated when adding deps/tooling.

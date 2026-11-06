@@ -70,3 +70,17 @@ pnpm-debug.log*
 
 .run
 .run/
+# Temporary design files
+.superdesign/tmp/
+
+# Browser design review artifacts
+.playwright-mcp/
+/.superdesign/
+
+# Local agent state and editor backups
+/.mcp_memory/
+/.project-memory/
+*.bak
+
+# Runtime RAG index and SQLite sidecars (may contain personal documents)
+/backend/data/

@@ -1,0 +1,16 @@
+{
+  "name": "valid_hello_v3",
+  "expectedCode": null,
+  "payload": {
+    "type": "hello",
+    "protocolVersion": 3,
+    "supportedProtocolVersions": [3, 2],
+    "backendInstanceId": null,
+    "sessionEpoch": 0,
+    "commandId": "cmd-00000000-0000-0000-0000-000000000011",
+    "client": {
+      "appId": "audio-transcriber-ui",
+      "clientVersion": "0.2.0"
+    }
+  }
+}

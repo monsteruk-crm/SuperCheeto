@@ -1,0 +1,22 @@
+{
+  "name": "valid_run_snapshot_query_v3",
+  "expectedCode": null,
+  "payload": {
+    "type": "run_snapshot_query",
+    "protocolVersion": 3,
+    "backendInstanceId": "be-11111111-1111-1111-1111-111111111111",
+    "sessionEpoch": 3,
+    "commandId": "cmd-00000000-0000-0000-0000-000000000013",
+    "snapshotId": "snap-11111111-1111-1111-1111-111111111111",
+    "targetId": null,
+    "mode": "Custom",
+    "presetId": null,
+    "customInstruction": "Focus on the rollback plan.",
+    "model": "openai/gpt-5.6-sol",
+    "reasoningEffort": null,
+    "clientPressedAtMs": 99000,
+    "includeScreenshot": true,
+    "screenshotDataUrl": "data:image/png;base64,iVBORw0KGgo=",
+    "humanNoteIds": ["note-1"]
+  }
+}

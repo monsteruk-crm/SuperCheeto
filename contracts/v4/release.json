@@ -1,0 +1,13 @@
+{
+  "name": "release",
+  "expectedCode": null,
+  "payload": {
+    "protocolVersion": 4,
+    "backendInstanceId": "backend-1",
+    "sessionEpoch": 1,
+    "commandId": "command-1",
+    "type": "snapshot_action",
+    "snapshotId": "snap-1",
+    "action": "release"
+  }
+}

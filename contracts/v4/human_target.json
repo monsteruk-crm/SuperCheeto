@@ -1,0 +1,19 @@
+{
+  "name": "human_target",
+  "expectedCode": null,
+  "payload": {
+    "protocolVersion": 4,
+    "backendInstanceId": "backend-1",
+    "sessionEpoch": 1,
+    "commandId": "command-1",
+    "type": "run_snapshot_query",
+    "snapshotId": "snap-1",
+    "mode": "Preset",
+    "presetId": "answer_question",
+    "manualTarget": {
+      "targetId": "target-1",
+      "sourceSnapshotId": "snap-1",
+      "wording": "Should we roll back?"
+    }
+  }
+}

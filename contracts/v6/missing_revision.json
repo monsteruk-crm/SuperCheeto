@@ -1,0 +1,22 @@
+{
+  "name": "missing_revision",
+  "payload": {
+    "protocolVersion": 6,
+    "backendInstanceId": "backend-1",
+    "sessionEpoch": 1,
+    "commandId": "command-1",
+    "type": "configure_auto",
+    "expectedConfigRevision": null,
+    "settings": {
+      "mode": "Preset",
+      "presetId": "answer_question",
+      "customInstruction": null,
+      "model": "google/gemini-3.8-flash",
+      "reasoningEffort": null,
+      "humanNoteIds": [],
+      "includeScreenshot": false,
+      "screenshotDataUrl": null
+    }
+  },
+  "expectedCode": "invalid_payload"
+}

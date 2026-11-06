@@ -1,0 +1,17 @@
+{
+  "name": "invalid_protocol_version",
+  "expectedCode": "incompatible_version",
+  "payload": {
+    "type": "run_context_query",
+    "protocolVersion": 1,
+    "backendInstanceId": "be-11111111-1111-1111-1111-111111111111",
+    "sessionEpoch": 3,
+    "commandId": "cmd-00000000-0000-0000-0000-000000000007",
+    "anchorSegmentKey": "ep-1:12",
+    "windowSeconds": 20,
+    "mode": "Preset",
+    "presetId": "answer_question",
+    "customInstruction": null,
+    "model": "openai/gpt-5.6-sol"
+  }
+}

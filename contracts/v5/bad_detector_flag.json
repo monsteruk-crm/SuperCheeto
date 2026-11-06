@@ -1,0 +1,20 @@
+{
+  "name": "bad_detector_flag",
+  "expectedCode": "invalid_payload",
+  "payload": {
+    "protocolVersion": 5,
+    "backendInstanceId": "backend-1",
+    "connectionId": "connection-1",
+    "sessionEpoch": 1,
+    "stateSeq": 1,
+    "type": "detector_state",
+    "enabled": true,
+    "inFlight": 1,
+    "dirty": false,
+    "truncated": false,
+    "outcome": "no_candidates",
+    "lastError": null,
+    "lastRevision": 1,
+    "model": null
+  }
+}

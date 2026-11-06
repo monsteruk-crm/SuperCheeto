@@ -1,0 +1,28 @@
+{
+  "name": "valid_candidate_action",
+  "expectedCode": null,
+  "payload": {
+    "type": "candidate_action",
+    "protocolVersion": 2,
+    "backendInstanceId": "be-11111111-1111-1111-1111-111111111111",
+    "sessionEpoch": 3,
+    "commandId": "cmd-00000000-0000-0000-0000-000000000004",
+    "action": "edit",
+    "candidateId": "cand-11111111-1111-1111-1111-111111111111",
+    "expectedRevision": 7,
+    "wording": "Should we roll back first?",
+    "sourceSpans": [
+      {
+        "segmentKey": "ep-1:12",
+        "start": 0,
+        "end": 12,
+        "t0": 1.0,
+        "t1": 2.0,
+        "sourceKind": "system",
+        "sourceName": "Monitor of Built-in Audio",
+        "audioEpoch": "ep-1",
+        "revision": 7
+      }
+    ]
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "name": "missing_answer",
+  "expectedCode": "invalid_payload",
+  "payload": {
+    "protocolVersion": 5,
+    "backendInstanceId": "backend-1",
+    "sessionEpoch": 1,
+    "commandId": "command-1",
+    "type": "candidate_action",
+    "action": "correct",
+    "parents": [
+      {
+        "candidateId": "candidate-1",
+        "expectedRevision": 1
+      }
+    ],
+    "drafts": [
+      {
+        "wording": "Why?",
+        "sourceSpans": [
+          {
+            "segmentKey": "audio#1",
+            "revision": 1,
+            "start": 0,
+            "end": 6,
+            "t0": 0,
+            "t1": 1,
+            "sourceKind": "system",
+            "sourceName": "Synthetic",
+            "audioEpoch": "audio"
+          }
+        ]
+      }
+    ]
+  }
+}

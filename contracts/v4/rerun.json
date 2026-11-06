@@ -1,0 +1,12 @@
+{
+  "name": "rerun",
+  "expectedCode": null,
+  "payload": {
+    "protocolVersion": 4,
+    "backendInstanceId": "backend-1",
+    "sessionEpoch": 1,
+    "commandId": "command-1",
+    "type": "rerun_answer",
+    "sourceAnswerId": "answer-1"
+  }
+}

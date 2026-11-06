@@ -1,0 +1,11 @@
+{
+  "name": "rerun_missing_source",
+  "expectedCode": "invalid_payload",
+  "payload": {
+    "protocolVersion": 4,
+    "backendInstanceId": "backend-1",
+    "sessionEpoch": 1,
+    "commandId": "command-1",
+    "type": "rerun_answer"
+  }
+}

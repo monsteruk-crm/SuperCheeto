@@ -1,0 +1,201 @@
+{
+  "context": {
+    "protocolVersion": 6,
+    "backendInstanceId": "backend-1",
+    "sessionEpoch": 1
+  },
+  "fixtures": [
+    {
+      "name": "configure",
+      "file": "configure.json",
+      "kind": "command",
+      "expectedCode": null
+    },
+    {
+      "name": "missing_revision",
+      "file": "missing_revision.json",
+      "kind": "command",
+      "expectedCode": "invalid_payload"
+    },
+    {
+      "name": "negative_revision",
+      "file": "negative_revision.json",
+      "kind": "command",
+      "expectedCode": "invalid_payload"
+    },
+    {
+      "name": "missing_settings",
+      "file": "missing_settings.json",
+      "kind": "command",
+      "expectedCode": "invalid_payload"
+    },
+    {
+      "name": "unknown_profile",
+      "file": "unknown_profile.json",
+      "kind": "command",
+      "expectedCode": "invalid_payload"
+    },
+    {
+      "name": "invalid_screenshot_flag",
+      "file": "invalid_screenshot_flag.json",
+      "kind": "command",
+      "expectedCode": "invalid_payload"
+    },
+    {
+      "name": "invalid_notes",
+      "file": "invalid_notes.json",
+      "kind": "command",
+      "expectedCode": "invalid_payload"
+    },
+    {
+      "name": "arm",
+      "file": "arm.json",
+      "kind": "command",
+      "expectedCode": null
+    },
+    {
+      "name": "pause",
+      "file": "pause.json",
+      "kind": "command",
+      "expectedCode": null
+    },
+    {
+      "name": "invalid_arm",
+      "file": "invalid_arm.json",
+      "kind": "command",
+      "expectedCode": "invalid_payload"
+    },
+    {
+      "name": "invalid_mode",
+      "file": "invalid_mode.json",
+      "kind": "command",
+      "expectedCode": "invalid_payload"
+    },
+    {
+      "name": "hold_raw_selection",
+      "file": "hold_raw_selection.json",
+      "kind": "command",
+      "expectedCode": null
+    },
+    {
+      "name": "hold_target",
+      "file": "hold_target.json",
+      "kind": "command",
+      "expectedCode": null
+    },
+    {
+      "name": "hold_question_editor",
+      "file": "hold_question_editor.json",
+      "kind": "command",
+      "expectedCode": null
+    },
+    {
+      "name": "hold_profile_editor",
+      "file": "hold_profile_editor.json",
+      "kind": "command",
+      "expectedCode": null
+    },
+    {
+      "name": "hold_note_editor",
+      "file": "hold_note_editor.json",
+      "kind": "command",
+      "expectedCode": null
+    },
+    {
+      "name": "hold_settings",
+      "file": "hold_settings.json",
+      "kind": "command",
+      "expectedCode": null
+    },
+    {
+      "name": "hold_configuration_pending",
+      "file": "hold_configuration_pending.json",
+      "kind": "command",
+      "expectedCode": null
+    },
+    {
+      "name": "invalid_hold",
+      "file": "invalid_hold.json",
+      "kind": "command",
+      "expectedCode": "invalid_payload"
+    },
+    {
+      "name": "nested_hold",
+      "file": "nested_hold.json",
+      "kind": "command",
+      "expectedCode": "invalid_payload"
+    },
+    {
+      "name": "state_ready",
+      "file": "state_ready.json",
+      "kind": "auto_state",
+      "expectedCode": null
+    },
+    {
+      "name": "state_held",
+      "file": "state_held.json",
+      "kind": "auto_state",
+      "expectedCode": null
+    },
+    {
+      "name": "state_bad_sequence",
+      "file": "state_bad_sequence.json",
+      "kind": "auto_state",
+      "expectedCode": "invalid_payload"
+    },
+    {
+      "name": "state_bad_revision",
+      "file": "state_bad_revision.json",
+      "kind": "auto_state",
+      "expectedCode": "invalid_payload"
+    },
+    {
+      "name": "state_bad_flag",
+      "file": "state_bad_flag.json",
+      "kind": "auto_state",
+      "expectedCode": "invalid_payload"
+    },
+    {
+      "name": "state_bad_hold",
+      "file": "state_bad_hold.json",
+      "kind": "auto_state",
+      "expectedCode": "invalid_payload"
+    },
+    {
+      "name": "state_bad_pending",
+      "file": "state_bad_pending.json",
+      "kind": "auto_state",
+      "expectedCode": "invalid_payload"
+    },
+    {
+      "name": "state_bad_error",
+      "file": "state_bad_error.json",
+      "kind": "auto_state",
+      "expectedCode": "invalid_payload"
+    },
+    {
+      "name": "candidate_pending",
+      "file": "candidate_pending.json",
+      "kind": "question_event",
+      "expectedCode": null
+    },
+    {
+      "name": "candidate_bad_review",
+      "file": "candidate_bad_review.json",
+      "kind": "question_event",
+      "expectedCode": "invalid_payload"
+    },
+    {
+      "name": "candidate_bad_auto_status",
+      "file": "candidate_bad_auto_status.json",
+      "kind": "question_event",
+      "expectedCode": "invalid_payload"
+    },
+    {
+      "name": "private_execution_fields",
+      "file": "private_execution_fields.json",
+      "expectedCode": "invalid_payload",
+      "kind": "command"
+    }
+  ]
+}
