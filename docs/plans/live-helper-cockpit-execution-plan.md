@@ -1,6 +1,6 @@
 # Live Helper cockpit execution plan
 
-Date: 25 October 2026. Version: 3. Status: M00–M03, RT01, and M3bis are complete for their recorded scopes. M04 is IN PROGRESS; M04-T01 is complete and M04-T02 remains active. Resume from the companion ledger's exact next action.
+Date: 25 October 2026. Version: 3. Completion status updated 27 October 2026: M00–M11, RT01 and M3bis COMPLETE within recorded gates. Next task: NONE. See the [progress ledger](live-helper-cockpit-progress.md) and [M11 final handoff](../notes/2026-10-27-m11-handoff.md) for evidence, optional native fallback and measurement limits. Task definitions below remain the execution scope.
 
 Audience: an implementation agent that needs explicit tasks and completion checks.
 

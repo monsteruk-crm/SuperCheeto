@@ -1,6 +1,6 @@
 # Live Helper cockpit progress
 
-Last updated: 26 October 2026. M00–M08 (including RT01/M3bis) COMPLETE within their recorded scopes. M08 COMPLETE (synthetic/local-service): owned FULL AUTO, explicit arm, newest pending, manual priority/holds, deferred publication, review gates and lifecycle races. Backend 226/226; frontend 186/186; production build PASS (304 modules); standalone TypeScript PASS after the Vite typing follow-up. No paid inference/audio/native acceptance in M08. Next M09-T01.
+Last updated: 27 October 2026. M00–M11 (including RT01/M3bis) COMPLETE within recorded scopes. Fresh backend239/frontend198/typecheck/build305 PASS. M10 real audio/Gateway/AUTO/RAG and 28 clean rendered checks retain their separate evidence. Optional native translucency unsupported; speech-aligned quality/latency and billed answer cost unavailable. Next task: **NONE**. Prior operator processes are no longer running; M11 changed no service state.
 
 Plan: [execution plan](live-helper-cockpit-execution-plan.md). Requirements: [implementation brief](../prompts/live-helper-cockpit-implementation.md).
 
@@ -8,18 +8,12 @@ Plan: [execution plan](live-helper-cockpit-execution-plan.md). Requirements: [im
 
 ## Resume here
 
-- Active follow-up: [PR #1 review remediation](../notes/2026-10-26-pr1-review-remediation.md), R1–R5 implemented; backend238/frontend188/typecheck/build304 PASS. Runtime-data history sanitization/audit PASS; checked PR publication and GitHub metadata verification PASS. M09 remains next implementation milestone after review closure.
-
-- Publication follow-up: [PR #1](https://github.com/monsteruk-crm/SuperCheeto/pull/1) is open against `master`; the original implementation was published on `vercel-ai` (commit hashes changed during PR data sanitization). Standalone TypeScript errors are resolved; all final checks pass. Next implementation milestone remains M09-T01.
-
-- M08-T01–T09 COMPLETE. [M08 acceptance](../notes/2026-10-26-m08-acceptance.md) maps tasks, 32 shared v6 fixtures, deterministic races/flood, actual two-client WS and rendered evidence. [ADR 0019](../adr/0019-owned-full-auto-scheduling.md) accepted for this scope. Historical M00–M07 entries remain intact.
-- Next **M09-T01**: INDEX → STATUS → this ledger → `sed -n '455,471p' docs/plans/live-helper-cockpit-execution-plan.md`. Inventory installed Electron/display/compositor and official version-specific native support before IPC/shortcut/window changes. No silent Electron upgrade.
-- Latest gates: backend 226 PASS; frontend 186 PASS (11 files); build304 PASS; diff PASS; user data clean. Standalone TypeScript now passes after adding the Vite client type reference; the three historical baseline errors are resolved.
-- v6 advertises `full_auto`; v2–v5 preserve manual contracts. Server owns explicit arming and revisioned configuration. One active answer/newest pending/deferred result; holds never stop capture. Every AUTO draft unreviewed/source-linked. Human targets remain manual. No inbox backfill or reconnect replay.
-- Final rendered synthetic run proved automatic start, completed held publication/release, manual takeover/partial retention, Wrong question/linked correction, Pause, Stop listening and reload to Assist. Maximum concurrent answers 1. Listening state/header/Sound now reconcile on reload; final frontend suite/build/rendered check repeated after that fix.
-- Gateway-only routing from M07 preserved; no private config edits or new paid request/audio session/retry path. No paid inference, actual capture/STT, real latency or native acceptance attempted. User help may be needed for native/device checks in M09/M10.
-- Cleanup complete: isolated backend/Vite stopped; temporary SQLite removed; viewport reset/tab closed. User RAG data and unrelated dirty files/backups preserved. No commit/deployment. ADR 0011 remains Proposed until full M11 handoff.
-- Historical checkpoints below describe their own iteration; this section supersedes their next-task pointers.
+- **Plan COMPLETE; next task NONE.** [M11 final handoff](../notes/2026-10-27-m11-handoff.md) records final documentation alignment, command results, worktree and runtime state. No remaining implementation command or prerequisite.
+- Fresh 27 October checks: backend 239 PASS, frontend 198/12 files PASS, TypeScript PASS, production build 305 modules PASS. Local Markdown link/anchor audit and `git diff --check` PASS. No new paid/device/native tests in M11.
+- [M10 evidence/screenshots](../notes/2026-10-26-m10-acceptance.md) contains the final A01–A28 matrix, 28 clean rendered checks and actual system capture/local STT/manual/eligible AUTO with real embeddings/RAG. [M09 native evidence](../notes/2026-10-26-m09-acceptance.md) covers native delivery/registration/window checks. Optional A20 unsupported; opaque fallback accepted in ADR 0021.
+- **Runtime refreshed 27 October:** recorded backend161828/Electron159182/controller159168 processes absent; ports8765/8767/8770/5189 idle. Yesterday's continuous movie session is historical. No service started/stopped, no audio routing/playback changes, and no new paid calls. Preserve its temporary profile/database if later recovery is requested; do not replace normal user data with acceptance fixtures.
+- Limits: reference-aligned speech latency/STT or semantic accuracy and billed answer cost unavailable. Physical microphone and real benchmark were outside the system-output smoke. Source-backed configuration limits and session-only Keep semantics are documented in STATUS/READMEs/storage map.
+- Branch `vercel-ai`, HEAD `98359c3`. Existing M09/M10 source/tests/native/evidence edits preserved; M11 docs/public-example comments remain uncommitted. No staging, commit, push or PR update. Exact final worktree below. Historical milestone/publication records retain their original evidence.
 
 ## Status conventions
 
@@ -47,11 +41,11 @@ Check result: `PASS`, `FAIL`, `BLOCKED`, or `NOT RUN`.
 | M06 | T01 to T09 | COMPLETE | 175 backend + 115 frontend tests/build; synthetic monitoring/source/focus checks, real temporary RAG readers, backend benchmark orchestration and rendered Sound/Settings/persistence. ADR 0017 and final evidence. | M07-T01 |
 | M07 | T01 to T09 | COMPLETE | 198 backend + 146 frontend tests/build; v5 shared fixtures; rendered edit/split/merge/dismiss/undo/correction; Gateway guard/audit; ADR 0018 and final evidence | M08-T01 |
 | M08 | T01 to T09 | COMPLETE | 226 backend/186 frontend/build304; v6 fixtures, two-client races, 81-question flood, rendered holds/manual correction/reload; ADR 0019 and acceptance note | M09-T01 |
-| M09 | T01 to T08 | NOT STARTED | Native controls not implemented | M09-T01 |
-| M10 | T01 to T08 | NOT STARTED | Integrated acceptance not run | M10-T01 |
-| M11 | T01 to T05 | NOT STARTED | Final documentation/acceptance handoff pending | M11-T01 |
+| M09 | T01 to T08 | COMPLETE | Native/automated gates and approved main-screen preview confirmed; opaque fallback documented | M10-T01 |
+| M10 | T01 to T08 | COMPLETE | 239backend/198frontend/typecheck/build305; 28clean rendered checks; real audio/Gateway/AUTO/RAG; limits explicit in evidence | M11-T01 |
+| M11 | T01 to T05 | COMPLETE | Docs/source alignment, ADR acceptance mapping, final parity, clean-context/link audit; fresh backend239/frontend198/typecheck/build305/diff PASS | NONE |
 
-## Environment and worktree baseline
+## Historical environment and worktree baseline (M00–M03)
 
 Refreshed during M00-T01/T03/T04. Repository root `/home/lisophorm/PycharmProjects/PythonProject`.
 
@@ -139,19 +133,18 @@ Expand this table in M00-T02 to enumerate individual actions and handlers. Keep 
 
 | ID | Existing capability group | Destination/check | Result | Evidence |
 | --- | --- | --- | --- | --- |
-| P01 | System/mic mode, quick switch, selectors, refresh, Start/Stop and meters | Sound + header selected-input meter | PASS (synthetic) | M06 automated + CUA; actual devices/STT M09/M10 |
-| P02 | Exact selection/time range, edit/reset/clear, following/jump, transcript clear | Raw panel and conditional target editor | PASS | M05 harness + rendered CUA; final acceptance note |
-| P03 | Model selection/refresh, all presets, Run preset/custom, custom instruction | Guide controls; original Settings retained | PASS (Desk) | M05 harness + CUA; full Settings parity remains M06 |
-| P04 | Streaming, Stop, frozen server rerun, selected-text Answer, truthful request metadata | Identified answer cards/details | PASS | M04/M05 automated + mock WS + one live inference |
-| P05 | Screenshot capture/shortcut, preview/removal, inclusion preference | Existing bridge wired to Desk | PASS (renderer); native NOT RUN | M05 mocked IPC harness; actual capture/shortcut M09/M10 |
-| P06 | RAG file/folder TXT/MD/PDF/DOCX, list/metadata/refresh/clear/notices | Original Settings; real temporary SQLite | PASS (isolated) | M06 UI actions/results + actual reader/store test; rendered TXT ingestion/clear |
-| P07 | Query Settings and Model Catalog metadata/refresh | Original Settings | PASS (synthetic) | M06 Settings harness + rendered catalog; screenshot preference existing harness |
-| P08 | Benchmark model multi-select/repeats/test CRUD/image refs | Original Settings | PASS (synthetic) | M06 Settings harness + real backend benchmark orchestration with injected Gateway |
-| P09 | Image upload/replace/delete/stable refs/preview | Original Settings | PASS (synthetic) | M06 UI upload/replace/preview/delete/reference validation and remount persistence |
-| P10 | Benchmark logs/results/latest/tooltips/history/clear/deduplication | Original Settings and handlers | PASS (synthetic) | M06 harness/backend + rendered log/history/clear; live paid benchmark M10 |
-| P11 | Desk prefs/tests/history/images/RAG persistence | Existing keys and isolated DB | PASS (isolated) | M06 remount/reopen and browser reload; real user data untouched |
-| P12 | Settings navigation and unsaved state | Mounted original pages | PASS | M06 harness + CUA; Desk drafts/raw anchors retain M05 evidence |
-
+| P01 | System/mic mode, quick switch, selectors, refresh, Start/Stop and meters | Sound + header meter | PASS; system hardware observed | M06 suite; M10 A09/A24, real system capture; physical mic outside smoke |
+| P02 | Selection/time range, edit/reset/clear, follow/jump, transcript clear | Raw panel + target editor | PASS | M05; M10 A02/A03/A07, rendered/interaction receipts |
+| P03 | Models/refresh, presets/custom instructions | Guide + original Settings | PASS | M10 A06/A10; model/role and Settings suites |
+| P04 | Streaming, Stop, frozen rerun and metadata | Identified cards/details | PASS | M10 A04/A25/A27; real Gateway plus synthetic failures/cancellation |
+| P05 | Screenshot shortcut, preview/removal and inclusion | Native bridge + Desk | PASS; native + renderer | M09 OS capture/shortcut evidence; M10 A06/A18/A21 |
+| P06 | RAG TXT/MD/PDF/DOCX, list/refresh/clear and notices | Original Settings; isolated SQLite | PASS | M10 A05/A10; four actual readers, real embeddings/retrieval |
+| P07 | Query Settings and model catalog metadata/refresh | Original Settings | PASS | M10 A06/A10; rendered parity and frozen inputs |
+| P08 | Benchmark multi-select/repeats/test CRUD/image refs | Original Settings | PASS (synthetic provider) | M10 A11/A12; real orchestration and rendered validation |
+| P09 | Image upload/replace/delete/stable refs/full preview | Original Settings | PASS | M10 A11 extras receipts, actual image decode/reload |
+| P10 | Benchmark logs/results/latest/tooltips/history/clear/dedup | Original Settings | PASS (synthetic provider); paid run NOT RUN | M10 A12, Settings/backend suites; paid benchmark outside smoke |
+| P11 | Preferences/tests/history/images/RAG persistence | Existing keys and isolated DB | PASS | M10 A13, six-key rendered comparison/reopen; original RAG bytes preserved |
+| P12 | Settings navigation and unsaved state | Original mounted pages | PASS | M10 A10/A13, rendered parity; M06 state-retention suite |
 Stored keys reconfirmed from source in M00-T03: `ui-preferences.v1`, `benchmark-history.v1`, `benchmark-images.v1`, `benchmark-tests.v1`, plus the RAG SQLite at `RAG_DB_PATH`.
 
 ### Action-level parity inventory (M00-T02)
@@ -487,7 +480,7 @@ M04 and M05 COMPLETE: protocol v4 frozen reruns/targets/retention, four-panel ma
 - Fake-clock/event-gated scheduler tests and actual two-client WS prove bounded concurrency, manual priority, no replay, deferred/stale publication, lifecycle/candidate invalidation, capacity and correction. Sustained81-question flood keeps one active/newest pending without deleting earlier questions.
 - Rendered final service: explicit AUTO/new eligible start, held completed output/release, manual takeover with partial retained, linked correction, Pause/Stop listening, reload stays Assist. Desktop1440×900/compact1000×720 overflow/footer pass. Harness max concurrency1, 6 synthetic answers/10 synthetic detections; no paid requests/audio/STT.
 - Acceptance caught stale deferred inbox labels, generation/publication conflation and stale listening state on reload; fixed with regressions and affected full checks. Config whitelist blocks private execution fields.
-- [Complete evidence/screenshots](../notes/2026-10-26-m08-acceptance.md). Docs/API/runbooks/architecture/accepted ADR/indexes current. Next M09-T01. Native/hardware/live acceptance remains open; no full-E2E claim. Cleanup complete; private config/data/dirty files preserved; no commit/deployment.
+- [Complete evidence/screenshots](../notes/2026-10-26-m08-acceptance.md). Docs/API/runbooks/architecture/accepted ADR/indexes current. M09 implementation complete; final T08 screen permission/preview check pending. Native/hardware/live acceptance remains open; no full-E2E claim. Cleanup complete; private config/data/dirty files preserved; no commit/deployment.
 
 
 ## Vite typing and publication follow-up — 26 October 2026
@@ -504,3 +497,79 @@ M04 and M05 COMPLETE: protocol v4 frozen reruns/targets/retention, four-panel ma
 - Final code gate PASS: backend238, frontend188, standalone TypeScript zero errors, build304. Local RAG hashes: all3 files unchanged. Next: commit fixes, rebuild only introduced PR commits without runtime data paths, verify trees/objects and publish with an explicit branch lease; update PR description/results.
 - Privacy gate PASS: rebuilt5 introduced commits without backend/data paths; original database blob IDs absent from introduced objects; final source tree identical; all3 local runtime file hashes unchanged and files untracked/ignored. Local recovery ref retained only locally. Shared master history/hosting caches are outside this scoped cleanup. Current rewritten fix commit `a1f6f10`; published through `266eeb1` and verified against the GitHub PR head.
 - Review handoff COMPLETE: all five findings addressed and published to [PR #1](https://github.com/monsteruk-crm/SuperCheeto/pull/1). GitHub's six-commit PR list was audited: runtime paths absent from each tree, remote head matched the local branch, and all3 local file hashes unchanged. PR description corrected with review fixes,238/188 passing tests and historical-data scope. This final documentation commit follows that verified tip. Next M09-T01; no review blocker remains within the five requested findings.
+
+
+## M11 execution (27 October 2026)
+
+- **M11-T01 COMPLETE:** source-backed alignment of root/backend/frontend READMEs, API current negotiation, architecture, public env examples and storage/schema docs. Fixed outdated native/detector pointers, broad fallback claims, the fixed UI port, English-only runtime language behavior and import-time environment limits. No runtime code, secret, transcript database or user data changed. Next M11-T02.
+- **M11-T02 COMPLETE:** ADR 0011 Accepted with C01–C06/Settings/native evidence mapping and explicit optional/measurement boundaries. Fixed its plan link; ADR 0012 now points to implemented v4–v6 amendments. ADR index aligned. Next M11-T03.
+- **M11-T03 COMPLETE:** current STATUS, release note, root/plans/data indexes and final handoff note aligned. Historical failures remain in prior command logs, with current resolution explicit. Next M11-T04.
+- **M11-T04 COMPLETE:** refreshed HEAD/worktree and read-only process/listener state; final parity P01–P12 maps to M10. Prior service entries are historical. User data and existing dirty source preserved. Next M11-T05.
+- **M11-T05 COMPLETE:** authority → current status → exact task `NONE` → latest evidence → limits → runtime/worktree audit PASS. ADR 0011 acceptance rests on M10 functional evidence, not build success. No required gate waived; optional native and measurement limits retained.
+
+### M11 final command results
+
+| Directory | Command | Result |
+| --- | --- | --- |
+| Root | Runtime Python executable/version/import-path probe; `node --version`; `npm --version`; Electron package version read | PASS; Python3.14.4, Node24.21.0, npm11.19.0, Electron31.7.7 |
+| backend | `.venv/bin/python -m unittest discover -s tests -q` | PASS239; 6.977s; expected synthetic failure traceback |
+| frontend | `npm test -- --run` | PASS198, 12files |
+| frontend | `npx tsc --noEmit` | PASS, zero errors |
+| frontend | `npm run build` | PASS305 modules and Electron compilation |
+| Root | `python3 /tmp/audit_cockpit_docs.py` | PASS; 17 edited Markdown files, 226 local links/anchors exist, fences closed |
+| Root | `git diff --check` | PASS |
+| Root | `git rev-parse --short HEAD`; `git branch --show-current`; `git status --short` | HEAD98359c3, vercel-ai, preserved dirty worktree below |
+| Root | `ps -p 161828,159182,159168 -o pid,comm`; `ss -ltnp '( sport = :8765 or sport = :8767 or sport = :8770 or sport = :5189 )'` | Prior PIDs absent; no listeners; read-only check, no service cleanup needed |
+| Root | Additional live AI/audio/native/paid benchmark | NOT RUN in M11; applicable M09/M10 evidence retained, docs-only source change |
+
+Documentation audit corrected stale current-version/next-task/native claims. Existing historical command logs, failures and measurement limits remain above and in M10. No new ADR/protocol version was needed. Local STE100-style prose review was manual because no local `ste100` skill is installed. No new runtime source was edited; no additional live test is implied by these checks.
+
+M11 file groups: root/backend/frontend READMEs, public backend/frontend env examples, API/architecture/status/changelog/root index, ADR0011/0012/index, DB index/schema, plans index/execution status/progress, and new final handoff note. Preserved M09/M10 runtime/native/tests/acceptance artifacts are included in the combined worktree list below.
+
+### Final combined worktree (27 October 2026)
+
+```text
+ M README.md
+ M backend/.env.example
+ M backend/README.md
+ M backend/tests/test_questions.py
+ M docs/API.md
+ M docs/ARCHITECTURE.md
+ M docs/CHANGELOG.md
+ M docs/INDEX.md
+ M docs/STATUS.md
+ M docs/adr/0011-question-assistance-cockpit.md
+ M docs/adr/0012-cockpit-protocol-and-session-lifecycle.md
+ M docs/adr/INDEX.md
+ M docs/db/INDEX.md
+ M docs/db/SCHEMA.md
+ M docs/plans/INDEX.md
+ M docs/plans/live-helper-cockpit-execution-plan.md
+ M docs/plans/live-helper-cockpit-progress.md
+ M frontend/.env.example
+ M frontend/README.md
+ M frontend/dist-electron/main.cjs
+ M frontend/dist-electron/preload.cjs
+ M frontend/electron/main.cts
+ M frontend/electron/preload.cts
+ M frontend/src/App.tsx
+ M frontend/src/components/CockpitDesk.tsx
+ M frontend/src/global.d.ts
+ M frontend/src/styles.css
+ M frontend/vitest.config.ts
+?? docs/adr/0021-native-controls-and-opaque-focus.md
+?? docs/notes/2026-10-26-m09-acceptance.md
+?? docs/notes/2026-10-26-m10-acceptance.md
+?? docs/notes/2026-10-27-m11-handoff.md
+?? docs/notes/m09/
+?? docs/notes/m10/
+?? frontend/dist-electron/native-contract.cjs
+?? frontend/dist-electron/window-state.cjs
+?? frontend/electron/native-contract.cts
+?? frontend/electron/window-state.cts
+?? frontend/src/cockpit/__tests__/native.test.tsx
+?? frontend/src/cockpit/use_native.tsx
+?? scripts/acceptance/
+```
+
+Next task: **NONE**. No commit/publication requested. Subsequent quality/configuration/publication work requires a separate scope; current limits are in STATUS and the final handoff.

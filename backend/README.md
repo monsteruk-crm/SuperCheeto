@@ -63,7 +63,7 @@ The prototype shows a live webcam overlay with coarse gaze direction labels (`le
 - Streamed Responses API requests set `stream: true` so the backend receives `response.output_text.delta` events and final completion state.
 
 ## Manual cockpit answers
-- Protocol v4 (with v2/v3 compatibility) manual answers freeze transcript/screenshot/model/reasoning/note inputs at acceptance, then stream nonempty answer deltas through the owned request channel. The controller uses `backend/app/answer_service.py`; it does not create a cloud audio session.
+- Protocol v6 (with v2–v5 compatibility) manual answers freeze transcript/screenshot/model/reasoning/note inputs at acceptance, then stream nonempty answer deltas through the owned request channel. The controller uses `backend/app/answer_service.py`; it does not create a cloud audio session.
 - Retrieval outcomes distinguish `used`, `no_documents`, `no_matches`, and `failed`. Retrieved chunks retain their document ID/path/title/chunk index and excerpt for card evidence. Prompt context labels document excerpts as untrusted reference data, and citations to chunk IDs outside the retrieved set fail the answer request.
 - The four-panel frontend renders streamed Markdown/GFM as HTML elements with raw HTML disabled. First answer delta is backend acceptance-relative; first visible display is a separate client measurement.
 - Focused offline checks: `.venv/bin/python -m unittest tests.test_answer_service tests.test_cockpit_transport tests.test_gateway_streaming`; full backend suite: `.venv/bin/python -m unittest discover -s tests`.
@@ -123,3 +123,12 @@ Gateway/answer/detector/embedding configuration is read when `Settings` is const
 Structured detector `reviewReasons` explicitly gates eligibility. Generation/publication outcomes remain independent; holds buffer only AUTO publication on the bounded request, then revalidate source/interpretation before release. Manual sends and lifecycle/candidate changes cancel or supersede matching work while retaining displayed partials and provenance. Failure/capacity pauses without automatic paid retry. No capture, STT, Gateway route or SQLite schema change. [ADR 0019](../docs/adr/0019-owned-full-auto-scheduling.md), [v6 API](../docs/API.md#protocol-v6-owned-full-auto), [M08 evidence](../docs/notes/2026-10-26-m08-acceptance.md). Full suite: 226 PASS; injected models, event gates/fake clocks, real two-client WebSockets and temporary SQLite only.
 
 Runtime `backend/data/` and SQLite sidecars are ignored and untracked. Existing local indexes are preserved; fresh installations create their index through RagStore. Session invalidation terminates active manual/AUTO work before changing epoch. STT/transcript text suppression requires audio overlap; later repeated sentences are retained. [Review evidence](../docs/notes/2026-10-26-pr1-review-remediation.md).
+
+
+## Final verification and runtime configuration
+
+M00–M11 are complete within the [acceptance evidence and limits](../docs/notes/2026-10-26-m10-acceptance.md). Current full backend command: `cd backend && .venv/bin/python -m unittest discover -s tests -q` (239 PASS on 27 October 2026). Earlier counts above describe historical milestone gates.
+
+AppController loads `backend/.env` without overriding existing variables, then `backend/.env.local` with override enabled. Gateway model/URL/timeout, detector model/debounce and embedding model are read when Settings is constructed. Other dataclass defaults, including WS/audio/STT and RAG path/chunk settings, read environment at module import. Export those variables before starting Python for reliable overrides. See `app/settings.py`; no private env files need changes for acceptance.
+
+Normal detection continues on new finalized revisions after empty results. The 90-second/three-detector-start watchdog belongs only to the acceptance live host. Never use that host as the normal backend. Snapshots, candidates, answer records and AUTO state remain in memory; SQLite holds document retrieval data only. [Storage and schema](../docs/db/INDEX.md).

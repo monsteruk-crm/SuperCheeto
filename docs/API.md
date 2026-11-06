@@ -1,6 +1,6 @@
 # API
 
-Current client negotiates `[5,4,3,2]`. Protocol v5 adds M07 question proposals/correction; see its section below and ADR 0018. Older version sections retain their recorded contracts.
+Current client advertises `[6,5,4,3,2]` and negotiates the highest common version. Protocol v6 adds owned FULL AUTO and revisioned configuration; v5 adds question proposals/correction. See the version sections below and ADRs 0018/0019. The initial message lists describe legacy/shared traffic; scoped cockpit commands and events are documented by version. Reconnect negotiates again, retains client cards as historical records, and never replays generation or re-arms AUTO.
 
 ## Transport
 - Protocol: WebSocket
@@ -725,3 +725,16 @@ M08 contract, implemented and verified with synthetic dependencies. Negotiate `[
 One active answer plus one newest pending eligible candidate is enforced by the backend. Replacing pending execution retains the earlier question in the inbox. A deferred result must be resolved before another AUTO answer starts. Attempted identities/revisions never automatically retry; failures pause AUTO visibly. Manual requests take priority through matching cancellation and preserve old partial/source/card state. Pause clears pending while the current answer can finish. Stop listening, source/epoch changes, clear, owner loss/restart disarm and invalidate stale work; reconnect/control claim never re-arm. Candidate mutation invalidates old pending/active automatic interpretation. Existing retained cards and frozen evidence remain available.
 
 Shared v6 fixtures: [contracts/v6](../contracts/v6/index.json). Decisions and verification: [ADR 0019](adr/0019-owned-full-auto-scheduling.md), [M08 acceptance](notes/2026-10-26-m08-acceptance.md). Generation status records the computation outcome even when a completed result is later superseded during deferred publication. Authoritative v6 listening state also reconciles the header/Sound controls after reconnect.
+
+
+## Native Electron bridge (M09; independent of WebSocket versions)
+
+`window.electronAPI` retains `ping`, `captureScreen(): Promise<string|null>` and `onCaptureScreenShortcut(callback): unsubscribe`. Added:
+
+- `getNativeState(): Promise<NativeState>` and `onNativeState(callback): unsubscribe`.
+- `setWindowState({pinned?: boolean, focus?: boolean}): Promise<NativeState>`; require at least one boolean property; reject all unknown keys/types.
+- `onAnswerShortcut(callback): unsubscribe` dispatches the same primary action as the answer button.
+
+`NativeState` is `{pinned: boolean, focus: boolean, shortcuts: {answer: boolean, capture: boolean}, transparency: {supported: false, reason: string}}`. Native IPC validates that sender and sender frame match the application's main window/main frame, including existing screen capture. Rejected operations reject the promise; UI displays errors without optimistic pin/Focus state. Native subscriptions strip Electron events before callbacks.
+
+Capture is single-flight in both renderer and main process. Multi-monitor sources are matched to `screen.getPrimaryDisplay().id`, never selected by enumeration order. On Linux Wayland, a sole ID-less source returned by the system consent chooser is accepted as the user's explicitly approved selection; choose only the main screen there. Missing, mismatched or ambiguous sources reject. No detector/AUTO loop captures a screen. This changes only local IPC; protocol v2–v6 remain unchanged.

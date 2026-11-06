@@ -188,7 +188,13 @@ class AnswerService:
             )
             answer_text = getattr(result, "text", "") or getattr(record, "text", "")
             allowed_ids = {f"{chunk.doc_id}:{chunk.chunk_index}" for chunk in retrieval.chunks}
-            cited_ids = set(re.findall(r"\[([^\]\r\n]+:\d+)\]", answer_text))
+            # Models may group evidence as [doc:0, doc:1] or [doc:0; doc:1].
+            # Validate each identity, rather than treating the group as one ID.
+            cited_ids = {
+                chunk_id.strip()
+                for group in re.findall(r"\[([^\]\r\n]+:\d+)\]", answer_text)
+                for chunk_id in re.split(r"[,;]", group)
+            }
             invented_ids = sorted(cited_ids - allowed_ids)
             if invented_ids:
                 raise InvalidCitationError(

@@ -4,7 +4,8 @@ import type { Snapshot, SourceSpan } from '../cockpit/types'
 import type { TargetDraft } from '../cockpit/target'
 import type { Preset, TranscriptSegment } from '../types'
 import { clampTracks, DEFAULT_LAYOUT, PANEL_MINIMUMS } from '../cockpit/layout'
-import { useReadingAnchor } from '../cockpit/use_reading_anchor'
+import { useAutoScroll } from '../cockpit/use_auto_scroll'
+import { useActionShortcut } from '../cockpit/use_native'
 import AnswerCard from './AnswerCard'
 import RawTranscript from './RawTranscript'
 import PanelDivider from './PanelDivider'
@@ -14,6 +15,7 @@ import type { Candidate, CandidateMutation, DetectionState, AutoState, HoldReaso
 
 type Note = { noteId: string; text: string; includeInFutureContext: boolean }
 type Props = {
+  visible: boolean; focusMode: boolean; answerShortcutRegistered: boolean; nativeControls: React.ReactNode
   autoState:AutoState; autoAvailable:boolean; autoSettingsReady:boolean; autoSettingsError:boolean
   onAutoMode:(armed:boolean)=>void; onRetryAutoSettings:()=>void
   questionResult: {commandId:string;accepted:boolean}|null
@@ -23,7 +25,7 @@ type Props = {
   headerAudio?: React.ReactNode
   segments: TranscriptSegment[]; liveText: string; selectedText: string; windowSeconds: 20 | 45 | 90
   setWindowSeconds: (value: 20 | 45 | 90) => void; onAnswer: () => void; onPinMoment: () => void
-  screenshotDataUrl: string | null; includeScreenshot: boolean; canCaptureScreenshot: boolean
+  capturePending: boolean; screenshotDataUrl: string | null; includeScreenshot: boolean; canCaptureScreenshot: boolean
   onCaptureScreen: () => void; onClearScreenshot: () => void; onToggleScreenshot: (value: boolean) => void
   canAnswer: boolean; onClear: () => void; onSelectText: (text: string, spans: SourceSpan[]) => void
   records: RequestRecord[]; keptIds: string[]; keptCount: number; pendingAnswerIds: string[]
@@ -80,10 +82,9 @@ function HumanNotes({ notes, pendingIds, owner, save, onEditing }: {notes: Note[
 }
 
 function AnswerColumn({ records, label, props, onInspect, onView, onReading }: {records: RequestRecord[]; label: string; props: Props; onInspect: (id: string, active: boolean) => void; onView: (record: RequestRecord) => void; onReading: (id: string | null) => void}) {
-  const anchor = useReadingAnchor(records)
+  const scrollRef = useAutoScroll(records.map(record => `${record.answerId}:${record.text}:${record.status}`).join('|'), props.visible)
   return <>
-    {anchor.newCount ? <button className="new-drafts" onClick={anchor.showLatest}>Show {anchor.newCount} new drafts</button> : null}
-    <div ref={anchor.ref} className="cockpit-scroll answer-scroll" role="region" aria-label={label} onScroll={() => {anchor.capture();const root=anchor.ref.current;const top=root?.getBoundingClientRect().top || 0;const first=[...(root?.querySelectorAll<HTMLElement>('[data-answer-id]') || [])].find((e)=>e.getBoundingClientRect().bottom>top);onReading(first?.dataset.answerId || null)}}>
+    <div ref={scrollRef} className="cockpit-scroll answer-scroll" role="region" aria-label={label} onScroll={() => {const root=scrollRef.current;const top=root?.getBoundingClientRect().top || 0;const first=[...(root?.querySelectorAll<HTMLElement>('[data-answer-id]') || [])].find((e)=>e.getBoundingClientRect().bottom>top);onReading(first?.dataset.answerId || null)}}>
       {records.length ? records.map((record) => <AnswerCard key={record.requestId} record={record} busy={props.pendingAnswerIds.includes(record.answerId)} disabled={!props.connected || !props.isOwner} onCopy={props.onCopy} onKeep={props.onKeep} onRemove={props.onRemove} onCancel={props.onCancel} onRerun={props.onRerun} onFirstVisible={props.onFirstVisible} onInspect={onInspect} onViewRaw={onView} onWrongQuestion={props.onWrongQuestion} />) : <p className="empty-panel">{label === 'Working answers' ? 'No answer drafts yet. Answer the latest speech or select transcript text.' : 'Kept answers stay here. Keeping does not mean verified.'}</p>}
     </div>
   </>
@@ -91,6 +92,7 @@ function AnswerColumn({ records, label, props, onInspect, onView, onReading }: {
 
 export default function CockpitDesk(props: Props) {
   const {segments, draft, layout}=props
+  const inboxScrollRef = useAutoScroll(props.candidates.map(candidate => `${candidate.candidateId}:${candidate.candidateRevision}:${candidate.state}`).join('|'), props.visible)
   const grid=useRef<HTMLDivElement>(null)
   const [width,setWidth]=useState(typeof window==='undefined'?1440:window.innerWidth-32)
   const [viewportWidth,setViewportWidth]=useState(typeof window==='undefined'?1440:window.innerWidth)
@@ -110,19 +112,23 @@ export default function CockpitDesk(props: Props) {
   const onInspect=useCallback((id:string,active:boolean)=>setInspected((ids)=>active?(ids.includes(id)?ids:[...ids,id]):ids.filter((item)=>item!==id)),[])
   const working=props.records.filter((r)=>r.placement!=='kept'),kept=props.records.filter((r)=>r.placement==='kept')
   const active=props.records.find((r)=>!r.terminal)
+  const answerDisabled = !active && (!props.canAnswer || props.pendingSource || (props.profileMode==='Custom'&&!props.customInstruction.trim()) || Boolean(draft&&!draft.wording.trim()))
+  const primaryAction = () => { if (answerDisabled) return; if(active && active.metadata?.origin!=='auto') props.onCancel(active); else props.onAnswer() }
+  useActionShortcut('answer', primaryAction, props.visible, props.answerShortcutRegistered)
   const viewAnswer=useCallback((record:RequestRecord)=>setViewSource(props.sourceSnapshots[record.snapshotId || ''] || null),[props.sourceSnapshots])
   const readWorking=useCallback((id:string|null)=>setReading((r)=>r.working===id?r:{...r,working:id}),[])
   const readKept=useCallback((id:string|null)=>setReading((r)=>r.kept===id?r:{...r,kept:id}),[])
   const divider=(index:number,label:string)=><PanelDivider index={index} label={label} layout={layout} compact={compact} available={available} onChange={props.onLayoutChange}/>
-  return <main className="cockpit">
+  return <main className={`cockpit${props.focusMode?' focus-mode':''}`}>
     <header className="cockpit-session-bar">
       <div><strong>Live Helper</strong><span>{props.connected?props.status:'Offline · no requests will replay'}</span><span>{props.isOwner?'Control enabled':'Read-only'}</span></div>
+      {props.nativeControls}
       <div className="cockpit-audio-header">{props.headerAudio}</div>
       <div><span>{props.profileMode === 'Custom' ? 'Custom instruction active' : props.presets.find((p)=>p.id===props.selectedPresetId)?.label}</span>
         <details className="guide" onToggle={e=>setProfileEditing(e.currentTarget.open)}><summary>Guide / profile</summary><div className="guide-body">
           <label>Mode<select aria-label="Profile mode" value={props.profileMode} onChange={(e)=>props.onProfileMode(e.target.value as 'Preset'|'Custom')}><option>Preset</option><option>Custom</option></select></label>
           <label>Preset<select aria-label="Guide preset" value={props.selectedPresetId} onChange={(e)=>props.onPreset(e.target.value)}>{props.presets.map((p)=><option key={p.id} value={p.id}>{p.label}</option>)}</select></label>
-          <label>Custom instruction<textarea aria-label="Effective custom instruction" value={props.customInstruction} onChange={(e)=>props.onCustomInstruction(e.target.value)}/></label>
+          <label>Custom instruction<textarea rows={10} aria-label="Effective custom instruction" value={props.customInstruction} onChange={(e)=>props.onCustomInstruction(e.target.value)}/></label>
           <label>Model<select aria-label="Answer model" value={props.model} onChange={(e)=>props.onModel(e.target.value)}>{props.models.length?props.models.map((model)=><option key={model}>{model}</option>):<option value={props.model}>{props.model||'No models loaded'}</option>}</select></label>
           <button onClick={props.onRefreshModels}>Refresh models</button><button disabled={!props.canAnswer} onClick={props.onRunPreset}>Run preset</button><button disabled={!props.canAnswer||!props.customInstruction.trim()} onClick={props.onRunCustom}>Run custom</button>
         </div></details>
@@ -134,7 +140,7 @@ export default function CockpitDesk(props: Props) {
     <div ref={grid} className={`cockpit-grid ${compact?'compact':''}`} style={{gridTemplateColumns:columns,['--top-left' as string]:`${top[0]}px`,['--top-right' as string]:`${top[1]}px`,['--bottom-left' as string]:`${bottom[0]}px`,['--bottom-right' as string]:`${bottom[1]}px`} as React.CSSProperties}>
       <section className="cockpit-panel raw-panel"><header><h2>Raw transcript</h2><span>Original words · {segments.length} finalized segments</span></header><RawTranscript segments={segments} liveText={props.liveText} onSelect={props.onSelectText} viewSource={viewSource}/>{divider(0,'Resize raw transcript panel')}</section>
       <section className="cockpit-panel inbox-panel"><header><h2>Possible questions</h2><span>Fallible proposals · manual context remains available</span></header>
-        <div className="cockpit-scroll inbox-scroll"><QuestionInbox candidates={props.candidates} detection={props.detection} available={props.detectionAvailable} owner={props.isOwner&&props.connected} onDetection={props.onDetection} onAction={props.onCandidateAction} result={props.questionResult} onSelect={props.onUseCandidate} onView={setViewSource} onEditing={setQuestionEditors}/>
+        <div ref={inboxScrollRef} className="cockpit-scroll inbox-scroll"><QuestionInbox candidates={props.candidates} detection={props.detection} available={props.detectionAvailable} owner={props.isOwner&&props.connected} onDetection={props.onDetection} onAction={props.onCandidateAction} result={props.questionResult} onSelect={props.onUseCandidate} onView={setViewSource} onEditing={setQuestionEditors}/>
           {props.selectedText && !draft?<div className="selection-actions"><blockquote>{props.selectedText}</blockquote><button disabled={!props.canAnswer||props.pendingSource} onClick={props.onAnswer}>Draft answer from selection</button><button disabled={!props.canAnswer||props.pendingSource} onClick={props.onMakeQuestion}>Make question</button><button onClick={props.onClearTarget}>Clear selection</button></div>:null}
           {draft?<section className="target-editor" aria-label="Manual target editor"><strong>{draft.correctsAnswerId?"Correct the question · original answer retained":draft.wordingOrigin==='detector'?"Model interpretation · frozen source retained":"Human wording · frozen source retained"}</strong><textarea aria-label="Question to answer" maxLength={24000} value={draft.wording} onChange={(e)=>props.onDraftChange(e.target.value)}/><div>{props.detectionAvailable?<button disabled={!props.canAnswer||!draft.wording.trim()||props.pendingSource} onClick={props.onSaveQuestion}>{draft.correctsAnswerId?"Correct and draft answer":"Save question to inbox"}</button>:null}<button disabled={!props.canAnswer||!draft.wording.trim()||Boolean(draft.correctsAnswerId)||Boolean(draft.candidateId&&draft.wording!==draft.savedWording)} onClick={props.onAnswer}>Draft answer</button><button onClick={()=>props.onDraftChange(draft.originalText)}>Reset to source</button><button onClick={()=>setViewSource(draft.snapshot)}>View raw</button><button onClick={props.onClearTarget}>Clear target</button></div><details><summary>Original source</summary><blockquote>{draft.originalText}</blockquote></details></section>:null}
           {!draft&&!props.selectedText?<button disabled={!props.canAnswer||props.pendingSource} onClick={props.onMakeQuestion}>Make question</button>:null}
@@ -142,19 +148,21 @@ export default function CockpitDesk(props: Props) {
           <HumanNotes notes={props.humanNotes} pendingIds={props.pendingNoteIds} owner={props.isOwner} save={props.onNoteSave} onEditing={setNoteEditing}/>
         </div>{divider(1,'Resize possible questions panel')}
       </section>
-      <section className="cockpit-panel answers-panel"><header><h2>Working answers</h2><span>{working.length} drafts · maximum 50</span></header><AnswerColumn records={working} label="Working answers" props={props} onInspect={onInspect} onView={viewAnswer} onReading={readWorking}/>{divider(2,'Resize working answers panel')}</section>
-      <section className="cockpit-panel kept-panel"><header><h2>Kept / previous</h2><span>{kept.length} kept · maximum 50</span></header><AnswerColumn records={kept} label="Kept answers" props={props} onInspect={onInspect} onView={viewAnswer} onReading={readKept}/></section>
+      <section className="cockpit-panel answers-panel"><header><h2>Working answers</h2><span>{working.length} drafts · maximum 50</span></header><AnswerColumn records={working} label="Working answers" props={props} onInspect={onInspect} onView={viewAnswer} onReading={readWorking}/></section>
+      <section className="cockpit-panel kept-panel" hidden><header><h2>Kept / previous</h2><span>{kept.length} kept · maximum 50</span></header><AnswerColumn records={kept} label="Kept answers" props={props} onInspect={onInspect} onView={viewAnswer} onReading={readKept}/></section>
     </div>
     <section className="cockpit-action-bar" aria-label="Answer controls">
-      <button className="primary" disabled={!active&&(!props.canAnswer||props.pendingSource||(props.profileMode==='Custom'&&!props.customInstruction.trim())||Boolean(draft&&!draft.wording.trim()))} onClick={()=>active&&active.metadata?.origin!=='auto'?props.onCancel(active):props.onAnswer()}>{active?.metadata?.origin==='auto'?'Answer now':active?'Stop answer':draft?'Answer current target':props.selectedText?'Draft answer from selection':'Answer recent speech'}</button>
+      {props.errorMessage?<div className="cockpit-error" role="alert"><strong>Error: </strong>{props.errorMessage}
+        {props.errorMessage.includes('no verified image input')?<p>Uncheck Include screenshot below to answer using the transcript, or choose a model that supports images in Guide / profile.</p>:null}
+      </div>:null}
+      <button className="primary" disabled={answerDisabled} onClick={primaryAction}>{active?.metadata?.origin==='auto'?'Answer now':active?'Stop answer':props.pendingSource?'Preparing answer…':draft?'Answer current target':props.selectedText?'Draft answer from selection':'Answer recent speech'}</button>
       {active?.metadata?.origin==='auto'?<button onClick={()=>props.onCancel(active)}>Stop AUTO answer</button>:null}
       <label>Recent context<select aria-label="Recent context window" value={props.windowSeconds} onChange={(e)=>props.setWindowSeconds(Number(e.target.value) as 20|45|90)}><option value={20}>20 seconds</option><option value={45}>45 seconds</option><option value={90}>90 seconds</option></select></label>
       <button disabled={!props.canAnswer||props.pendingSource} onClick={props.onPinMoment}>Pin this moment</button>
-      <button disabled={!props.canCaptureScreenshot} onClick={props.onCaptureScreen}>Capture screen</button>
+      <button disabled={!props.canCaptureScreenshot} onClick={props.onCaptureScreen}>{props.capturePending?'Waiting for screen permission…':'Capture screen'}</button>{props.capturePending?<span role="status">Choose only your main screen in the system sharing dialog.</span>:null}
       <label><input type="checkbox" aria-label="Include screenshot" checked={props.includeScreenshot} disabled={!props.screenshotDataUrl} onChange={(e)=>props.onToggleScreenshot(e.target.checked)}/> Include screenshot</label>
       {props.screenshotDataUrl?<span className="screenshot-preview"><img src={props.screenshotDataUrl} alt="Captured screen preview"/><button onClick={props.onClearScreenshot}>Remove screenshot</button></span>:null}
       <button disabled={props.pendingSource} onClick={props.onClear}>Clear transcript</button>
-      {props.errorMessage?<p className="cockpit-error" role="status">{props.errorMessage}</p>:null}
       {props.unknownCommands.length?<div><button onClick={props.onCheckStatus}>Check pending status</button><button onClick={props.onDismissUnknown}>Dismiss unknown operation</button></div>:null}
     </section>
   </main>

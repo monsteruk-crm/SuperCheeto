@@ -1,5 +1,6 @@
 import type { Candidate, CandidateMutation, DetectionState, AutoState, AutoSettings, HoldReason } from './cockpit/types'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useActionShortcut, useNativeWindow, NativeControls } from './cockpit/use_native'
 import SoundDialog from './components/SoundDialog'
 import AudioMeter from './components/AudioMeter'
 import {MeterStore} from './audio/meter_store'
@@ -262,6 +263,9 @@ type QueryRunPayload = {
 
 const EMPTY_AUTO:AutoState={autoArmed:false,pauseReason:'not_armed',lastError:null,listening:false,detectionEnabled:false,holdReasons:[],configRevision:0,configurationReady:false,generationBusy:false,activeAnswerId:null,pendingCandidate:null,deferredAnswerId:null}
 const App: React.FC = () => {
+  const native = useNativeWindow()
+  const captureBusy = useRef(false)
+  const [capturePending, setCapturePending] = useState(false)
   const [storedUiPreferences] = useState<UIPreferences>(() => loadUiPreferences())
   const hasStoredAudioMode = storedUiPreferences.audioMode === 'mic' || storedUiPreferences.audioMode === 'system'
   const [activePage, setActivePage] = useState<'desk' | 'settings'>('desk')
@@ -1179,6 +1183,8 @@ const App: React.FC = () => {
   }
 
   const captureScreen = useCallback(async () => {
+    if (captureBusy.current) return
+    captureBusy.current = true; setCapturePending(true)
     try {
       const dataUrl = await window.electronAPI?.captureScreen?.()
       if (dataUrl) {
@@ -1189,16 +1195,10 @@ const App: React.FC = () => {
       }
     } catch (err) {
       setStatus(`error: failed to capture screen: ${String(err)}`)
-    }
+    } finally { captureBusy.current = false; setCapturePending(false) }
   }, [])
 
-  useEffect(() => {
-    const unsubscribe = window.electronAPI?.onCaptureScreenShortcut?.(() => {
-      if(document.querySelector('[role=dialog]') || ['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName || ''))return
-      void captureScreen()
-    })
-    return unsubscribe
-  }, [captureScreen])
+  useActionShortcut('capture', () => {void captureScreen()}, activePage === 'desk', Boolean(native.state?.shortcuts.capture))
 
   const runBenchmark = (payload: { models: string[]; instruction: string; tests: BenchmarkCaseInput[]; repeats: number }) => {
     const benchmarkId = crypto.randomUUID()
@@ -1233,17 +1233,22 @@ const App: React.FC = () => {
 
       <div className="desk-page" hidden={activePage !== 'desk'}>
           <CockpitDesk
+            visible={activePage === 'desk'} focusMode={native.state?.focus || false} answerShortcutRegistered={Boolean(native.state?.shortcuts.answer)} nativeControls={<NativeControls native={native}/>}
             autoState={autoState} autoAvailable={autoAvailable} autoSettingsReady={settingsSynced} autoSettingsError={autoSettingsError} onAutoMode={setAutoMode} onRetryAutoSettings={retryAutoSettings}
             candidates={candidates} detection={detection} detectionAvailable={detectionAvailable} questionResult={questionResult}
             onDetection={(enabled,retry=false)=>{const result=client.send({type:'set_detection',enabled,retry});if(!result.ok)setBackendError(result.message)}}
-            onCandidateAction={candidateAction} onUseCandidate={useCandidate} onSaveQuestion={saveQuestion} onWrongQuestion={wrongQuestion}
-            headerAudio={<><AudioMeter store={meterStore} kind={audioMode} source={audioMode==='mic'?selectedMicAudioSource:selectedSystemAudioSource} compact/><span>{isRunning?'Transcribing':'Transcription stopped'}</span><button onMouseDown={(event)=>{const selection=window.getSelection();soundSelectionRef.current=selection?.rangeCount?selection.getRangeAt(0).cloneRange():null;event.preventDefault()}} onClick={(event)=>{if(event.detail===0){const selection=window.getSelection();soundSelectionRef.current=selection?.rangeCount?selection.getRangeAt(0).cloneRange():null}event.currentTarget.focus();setSoundOpen(true)}}>Sound</button></>}
+            onCandidateAction={candidateAction} onUseCandidate={useCandidate} onSaveQuestion={saveQuestion} onWrongQuestion={(record)=>{if(native.state?.focus)void native.change({focus:false});wrongQuestion(record)}}
+            headerAudio={<><AudioMeter store={meterStore} kind={audioMode} source={audioMode==='mic'?selectedMicAudioSource:selectedSystemAudioSource} compact/><span>{isRunning?'Transcribing':'Transcription stopped'}</span>
+              <button className="primary" disabled={!cockpitReady || !cockpitOwner || (!isRunning && !(audioMode === 'mic' ? selectedMicAudioSource : selectedSystemAudioSource))} onClick={isRunning ? stopTranscription : startTranscription}>
+                {isRunning ? 'Stop transcription' : 'Start transcription'}
+              </button>
+              <button onMouseDown={(event)=>{const selection=window.getSelection();soundSelectionRef.current=selection?.rangeCount?selection.getRangeAt(0).cloneRange():null;event.preventDefault()}} onClick={(event)=>{if(event.detail===0){const selection=window.getSelection();soundSelectionRef.current=selection?.rangeCount?selection.getRangeAt(0).cloneRange():null}event.currentTarget.focus();setSoundOpen(true)}}>Sound</button></>}
             segments={segments} liveText={liveText} selectedText={selectedText}
             windowSeconds={recentWindowSeconds} setWindowSeconds={setRecentWindowSeconds}
             onAnswer={() => runCockpitAnswer()} onPinMoment={() => createSource('pin')}
             canAnswer={Boolean(targetDraft || lastFinalSegment?.segmentKey) && cockpitReady && cockpitOwner}
             screenshotDataUrl={screenshotDataUrl} includeScreenshot={includeScreenshotInQuery}
-            canCaptureScreenshot={Boolean(window.electronAPI?.captureScreen)} onCaptureScreen={captureScreen}
+            capturePending={capturePending} canCaptureScreenshot={!capturePending && Boolean(window.electronAPI?.captureScreen)} onCaptureScreen={captureScreen}
             onClearScreenshot={() => {setScreenshotDataUrl(null);setIncludeScreenshotInQuery(false)}} onToggleScreenshot={setIncludeScreenshotInQuery}
             onClear={clearTranscript} onSelectText={selectSource}
             records={answerRecords} keptIds={keptAnswerIds} keptCount={keptRecordCount} pendingAnswerIds={pendingAnswerIds}

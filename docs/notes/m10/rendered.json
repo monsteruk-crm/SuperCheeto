@@ -1,0 +1,129 @@
+{
+  "checks": [
+    {
+      "name": "visible incremental Markdown before delayed terminal",
+      "result": "PASS"
+    },
+    {
+      "name": "real controller to rendered Markdown/table/code",
+      "result": "PASS"
+    },
+    {
+      "name": "kept answer and server-frozen rerun after later speech",
+      "result": "PASS"
+    },
+    {
+      "name": "partial_error preserves truthful terminal/text",
+      "result": "PASS"
+    },
+    {
+      "name": "empty preserves truthful terminal/text",
+      "result": "PASS"
+    },
+    {
+      "name": "pre_error preserves truthful terminal/text",
+      "result": "PASS"
+    },
+    {
+      "name": "partial cancellation retained",
+      "result": "PASS"
+    },
+    {
+      "name": "Settings navigation, four RAG formats, benchmark orchestration",
+      "result": "PASS"
+    },
+    {
+      "name": "profile key values and SQLite metadata survive reload",
+      "result": "PASS",
+      "keys": [
+        "cockpit-layout.v1",
+        "benchmark-tests.v1",
+        "benchmark-history.v1",
+        "benchmark-images.v1",
+        "cockpit-human-notes.v1",
+        "ui-preferences.v1"
+      ]
+    },
+    {
+      "name": "actual retrieved evidence reaches rendered answer details",
+      "result": "PASS"
+    },
+    {
+      "name": "Electron renderer viewport 1680x1000",
+      "result": "PASS",
+      "width": 1680,
+      "height": 1000,
+      "overflow": false,
+      "columns": 4,
+      "footer": true,
+      "nativeWindowMayBeCompositorClamped": true
+    },
+    {
+      "name": "Electron renderer viewport 1440x900",
+      "result": "PASS",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "columns": 4,
+      "footer": true,
+      "nativeWindowMayBeCompositorClamped": true
+    },
+    {
+      "name": "Electron renderer viewport 1000x720",
+      "result": "PASS",
+      "width": 1000,
+      "height": 720,
+      "overflow": false,
+      "columns": 2,
+      "footer": true,
+      "nativeWindowMayBeCompositorClamped": true
+    },
+    {
+      "name": "real keyboard and pointer divider resize",
+      "result": "PASS"
+    },
+    {
+      "name": "pointer/keyboard source selection survives incoming speech",
+      "result": "PASS"
+    },
+    {
+      "name": "editable source target reset/clear and pin makes no generation call",
+      "result": "PASS"
+    },
+    {
+      "name": "native Focus retains same DOM, cards and meter",
+      "result": "PASS"
+    },
+    {
+      "name": "native text zoom 1.25",
+      "result": "PASS"
+    },
+    {
+      "name": "native text zoom 1.5",
+      "result": "PASS"
+    },
+    {
+      "name": "Focus renderer 960x800",
+      "result": "PASS"
+    },
+    {
+      "name": "production security and no global Escape",
+      "result": "PASS",
+      "contextIsolation": true,
+      "nodeIntegration": false,
+      "devtools": false,
+      "escape": false
+    },
+    {
+      "name": "no renderer exceptions",
+      "result": "PASS"
+    }
+  ],
+  "errors": [],
+  "screens": [
+    "desk-1680x1000.png",
+    "desk-1440x900.png",
+    "desk-1000x720.png"
+  ],
+  "previousHarnessErrors": []
+}

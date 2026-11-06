@@ -1,5 +1,5 @@
 import {beforeEach,describe,expect,it,vi} from 'vitest'
-import {act,fireEvent,render,screen,waitFor} from '@testing-library/react'
+import {within,act,fireEvent,render,screen,waitFor} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 const registry=vi.hoisted(()=>({transports:[] as any[]}))
 vi.mock('../../ws',async()=>{const {FakeWebSocketTransport}=await import('./helpers/fakeTransport');return {WSClient:class extends FakeWebSocketTransport{constructor(url:string,handlers:any){super(url,handlers);registry.transports.push(this)}}}})
@@ -49,7 +49,7 @@ describe('M08 owned AUTO controls and holds',()=>{
   expect(transport.sentCount('set_auto')).toBe(count)
   state(transport,{connectionId:'new-owner',sessionEpoch:2,stateSeq:1,listening:true})
   await user.click(screen.getByRole('button',{name:'Sound'}))
-  expect(screen.getByRole('button',{name:'Stop transcription'})).toBeEnabled()
+  expect(within(screen.getByRole('dialog')).getByRole('button',{name:'Stop transcription'})).toBeEnabled()
   expect(screen.queryByRole('button',{name:'Start transcription'})).not.toBeInTheDocument()
  })
  it('reports raw selection and target holds; Sound alone creates no hold',async()=>{

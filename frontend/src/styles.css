@@ -741,8 +741,9 @@ button.overlay-trash {
 .cockpit-panel h2 { margin: 0; color: #f5f7fb; font-size: 1.02rem; }
 .cockpit-panel header span { color: #93a3b7; font-size: .77rem; }
 .cockpit-scroll { overflow: auto; overscroll-behavior: contain; padding: 10px; flex: 1; }
-.raw-segment { margin: 0; padding: 8px 4px; border-bottom: 1px solid rgba(255,255,255,.07); color: #e4eaf2; font-size: 1.07rem; line-height: 1.45; user-select: text; }
-.raw-live { margin: 8px 0; padding: 7px; color: #e7ba73; background: rgba(202,147,61,.10); border-radius: 7px; }
+.raw-scroll { padding: 4px 6px; }
+.raw-segment { margin: 0; padding: 0 2px; border-bottom: 1px solid rgba(255,255,255,.07); color: #e4eaf2; font-size: 1.07rem; line-height: 1.2; user-select: text; }
+.raw-live { margin: 2px 0 0; padding: 2px; line-height: 1.2; color: #e7ba73; background: rgba(202,147,61,.10); border-radius: 7px; }
 .detector-notice, .empty-panel { margin: 12px; padding: 12px; border: 1px dashed #516176; border-radius: 10px; color: #bdc9d8; line-height: 1.4; }
 .detector-notice p { margin-bottom: 12px; }
 .human-notes { max-height: 60%; margin: 0 10px 12px; padding: 10px; border: 1px solid #35485d; border-radius: 9px; overflow: auto; color: #bdc9d8; font-size: .82rem; }
@@ -818,10 +819,11 @@ button.overlay-trash {
 .cockpit-grid.compact .kept-panel { width: var(--bottom-right); justify-self: end; }
 .cockpit-action-bar { flex: 0 0 auto; justify-content: flex-start; gap: 6px; padding: 8px 10px; }
 .cockpit-action-bar button, .cockpit-action-bar label { font-size: 13px; }
-.cockpit-error { max-height: 42px; overflow: auto; }
+.cockpit-error { padding: 10px 12px; border: 1px solid #f49a9e; border-radius: 8px; background: #481f2b; color: #fff0f1; font-size: 14px; overflow-wrap: anywhere; }
+.cockpit-error p { margin: 6px 0 0; }
 .guide { position: relative; font-size: 13px; }
 .guide > summary { cursor: pointer; padding: 5px 8px; border: 1px solid #63758a; border-radius: 8px; }
-.guide-body { position: absolute; right: 0; top: 100%; z-index: 15; width: min(480px,80vw); max-height: 65vh; overflow: auto; display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; border: 1px solid #63758a; border-radius: 10px; background: #172433; box-shadow: 0 12px 30px #0006; }
+.guide-body { position: fixed; left: 50%; top: min(180px, 20vh); transform: translateX(-50%); z-index: 15; box-sizing: border-box; width: min(480px, calc(100vw - 32px)); max-height: 65vh; overflow: auto; display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; border: 1px solid #63758a; border-radius: 10px; background: #172433; box-shadow: 0 12px 30px #0006; }
 .guide-body > label { width: 100%; display: block; }
 .guide-body textarea, .guide-body select { display: block; width: 100%; margin-top: 4px; }
 .target-editor, .selection-actions, .pinned-moments { margin: 8px 0; padding: 8px; border: 1px solid #53687d; border-radius: 8px; font-size: 13px; }
@@ -889,3 +891,17 @@ button.overlay-trash {
 .auto-controls details[open] { flex-basis:100%; }
 .auto-controls p { margin:4px 0; }
 .auto-error { flex-basis:100%; color:#ffb3b5; }
+
+/* Focus keeps mounted panels/anchors and hides only their presentation. */
+.focus-mode .cockpit-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); }
+.focus-mode .cockpit-grid .raw-panel, .focus-mode .cockpit-grid .inbox-panel { display: none; }
+.focus-mode .cockpit-grid .answers-panel, .focus-mode .cockpit-grid .kept-panel { width: auto; min-width: 0; }
+.focus-mode .cockpit-grid [role="separator"] { display: none; }
+.native-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.native-controls details { max-width: 420px; font-size: .82rem; }
+
+/* Working answers takes the former Kept column; retained cards stay in session. */
+.cockpit-grid .kept-panel { display: none; }
+.cockpit-grid .answers-panel { grid-column: 3 / span 2; }
+.cockpit-grid.compact .answers-panel { grid-column: 1 / -1; width: auto; }
+.focus-mode .cockpit-grid .answers-panel { grid-column: 1 / -1; }

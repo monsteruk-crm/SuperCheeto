@@ -14,6 +14,19 @@ beforeEach(()=>{window.localStorage.clear();Object.defineProperty(window,'electr
 afterEach(()=>{vi.useRealTimers();vi.unstubAllGlobals()})
 
 describe('M04/M05 workbench completion',()=>{
+ it('announces a rejected answer beside its controls with a screenshot recovery step',async()=>{
+  const user=userEvent.setup(),{transport}=desk()
+  await user.click(screen.getByRole('button',{name:'Answer recent speech'}))
+  expect(screen.getByRole('button',{name:'Preparing answer…'})).toBeDisabled()
+  const request=transport.lastSent('run_context_query')
+  act(()=>transport.emit('command_ack',{...scope,commandId:request.commandId,accepted:false,reason:'unsupported_capability',message:'fixture/model has no verified image input; the screenshot is kept and no request is sent.'}))
+  const alert=screen.getByRole('alert')
+  expect(alert).toHaveTextContent('Error:')
+  expect(alert).toHaveTextContent('Uncheck Include screenshot')
+  expect(alert.closest('[aria-label="Answer controls"]')).not.toBeNull()
+  expect(screen.getByRole('button',{name:'Answer recent speech'})).toBeEnabled()
+ })
+
  it('pins without generating, preserves an edited target after rejection and consumes it only on matching acceptance',async()=>{
   const user=userEvent.setup(),{transport}=desk()
   await user.click(screen.getByRole('button',{name:'Pin this moment'}))

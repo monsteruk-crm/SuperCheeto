@@ -835,3 +835,72 @@
 - User-visible: failed targeted/broadcast sends now release control exactly once; replacement windows can claim it. Stop listening supersedes manual as well as AUTO generation before the session epoch changes, retaining partial text/source. Legitimate repeated sentences are kept unless their audio overlaps; reconciliation stops after a read timeout.
 - Internal: shielded per-connection disconnect task and connect-hook cleanup; pre-epoch matching cancellation; timing/source/epoch-aware STT/transcript deduplication; status requests receive their own acknowledgement and never recursively query a read timeout. Runtime RAG database/SQLite sidecars removed from tracking and ignored, with local bytes preserved; PR-introduced history sanitized and verified as recorded in review evidence; shared base history/hosting caches remain outside this cleanup. ADR0020 documents these choices.
 - Verification: `cd backend && .venv/bin/python -m unittest discover -s tests -q` —238 PASS; `cd frontend && npm test -- --run` —188 PASS; `npx tsc --noEmit` —PASS; `npm run build` —PASS,304 modules. Includes real local WebSocket failure/ownership and stop-listening regressions, synthetic timing/fake-timer tests and local data hash verification. No paid/model/audio/native acceptance. [Evidence](notes/2026-10-26-pr1-review-remediation.md).
+
+
+## 2026-10-26 — M09 native controls and multi-monitor capture safety
+- User-visible: global answer shortcut/status, preserved capture shortcut, alternate focused Alt+Shift+Enter/C, Pin window and state-preserving two-column Focus. Screenshot capture waits on one OS request and selects the primary/explicit consent-selected screen; only approve the main screen. Opaque resizable fallback and DevTools opt-in.
+- Internal: typed IPC with sender/main-frame and payload validation, native state readback, listener cleanup, one renderer/controller, bounded window restore, shared primary action and duplicate guards. No WebSocket version or Electron upgrade; private settings/runtime data retained.
+- Tests run: `cd backend && .venv/bin/python -m unittest discover -s tests -q` PASS238; `cd frontend && npm test -- --run` PASS198; `cd frontend && npx tsc --noEmit` PASS; `cd frontend && npm run build` PASS305; `git diff --check` PASS. Actual Electron dev/file-loaded pin/Focus/restore/shortcut conflict checks and two paid Gateway text answers PASS. Final hardened main-screen capture preview pending OS selection; real audio/STT NOT RUN.
+- Docs: [M09 evidence](notes/2026-10-26-m09-acceptance.md), [ADR0021](adr/0021-native-controls-and-opaque-focus.md), API/native bridge, architecture, READMEs, status, index and progress ledger.
+
+
+## 2026-10-26 — M10 acceptance and denser raw speech
+- Raw transcript now uses zero vertical row padding,1.2 line height and tighter LIVE/container spacing while retaining15px text, selectable source rows and provenance highlights.
+- Added continuous detector regression: empty results do not stop checking new finalized revisions; unchanged text does not cause paid polling. No production detector call cap was added.
+- M10 COMPLETE: backend239/frontend198/typecheck/build305 and28 clean rendered checks PASS; real YouTube capture/local STT/manual/AUTO/embeddings/RAG PASS. Normal movie listening/suggestions restored without acceptance watchdogs at user request. Evidence/limits are recorded in [M10 acceptance](notes/2026-10-26-m10-acceptance.md).
+
+
+## 2026-10-27 (M11 complete: cockpit documentation and final handoff)
+
+- User-visible: runbooks now describe the accepted manual/detector/AUTO/native flows, opaque fallback and session-only Keep semantics. Corrected 404-only Gateway fallback, fixed frontend port, English-only transcription and environment-loading limits.
+- Internal: ADR 0011 Accepted with implementation/evidence mapping; ADR 0012 and protocol summaries point to implemented v4–v6. Storage map covers existing profile keys and document-only SQLite. STATUS and indexes provide a clean-context handoff; cockpit plan and ledger complete through M11, next task NONE. Existing worktree/user data preserved; no commit or publication.
+- How to test: `cd backend && .venv/bin/python -m unittest discover -s tests -q`: PASS239. `cd frontend && npm test -- --run`: PASS198/12 files. `cd frontend && npx tsc --noEmit`: PASS. `cd frontend && npm run build`: PASS305 modules including Electron compilation. Local edited-Markdown link/anchor audit and `git diff --check`: PASS. No new live/audio/native or paid tests; M09/M10 evidence retained.
+- Evidence and limits: [M11 handoff](notes/2026-10-27-m11-handoff.md), [M10 acceptance](notes/2026-10-26-m10-acceptance.md). Prior operator PIDs absent/ports idle at read-only check; no service started or stopped. Optional transparency unsupported; speech-aligned accuracy/latency and billed answer cost unavailable.
+
+
+## 2026-10-29 — Main transcription control
+
+- User-visible: Start/Stop transcription is directly available beside the main audio meter in Desk and Focus. Sound continues to provide device preferences and capture controls.
+- Internal: reuses existing start/stop actions and backend-confirmed running state; disabled when disconnected, read-only, or starting without a selected source. No protocol or capture-strategy change.
+- Verification: `cd frontend && npx tsc --noEmit` PASS; `cd frontend && npm test -- --run` PASS199/12 files, including main-header start/stop and existing Sound controls; `git diff --check` PASS. Live audio/rendered acceptance not run.
+
+
+## 2026-10-29 — Profile bounds and answer feedback
+
+- User-visible: Guide / profile opens centered within the viewport with bounded width/height and scrolling. Answer errors appear above the action controls in a bordered alert; image capability rejection explains how to disable screenshot inclusion or change models. Pending source/answer acceptance shows Preparing answer.
+- Internal: existing model capability rejection and screenshot inclusion choices remain authoritative; no automatic retry, protocol or capture changes.
+- Verification: `cd frontend && npx tsc --noEmit` PASS; `cd frontend && npm test -- --run` PASS200/12 files, including rejected-answer alert/recovery/pending-state regression; `cd frontend && npm run build` PASS305 modules; `git diff --check` PASS. Actual rendered geometry/live audio acceptance not run.
+
+
+## 2026-10-29 — Automatic column scrolling
+
+- User-visible: Possible questions, Working answers and Kept / previous follow the bottom as content is appended or grows. Scrolling up is temporary; the next content update follows the bottom. Replaces answer reading-anchor preservation and the new-drafts jump button.
+- Internal: shared `use_auto_scroll.ts` handles content mutations, resize and page re-entry with observer cleanup. Card order, manual actions and AUTO interaction reporting remain intact.
+- Verification: `cd frontend && npx tsc --noEmit` PASS; `cd frontend && npm test -- --run` PASS202/12 files, including appended/streamed content, re-entry, resize/mutation and cleanup coverage; `cd frontend && npm run build` PASS; `git diff --check` PASS. Actual rendered/live audio acceptance not run.
+
+
+## 2026-10-29 — Larger custom instruction input
+
+- User-visible: Guide / profile Custom instruction textarea now has 10 rows. README explains Human context notes, their location in Possible questions, per-note inclusion and the distinction from RAG retrieval.
+- Internal: native textarea rows only; existing profile, note and answer behavior preserved.
+- Verification: `cd frontend && npx tsc --noEmit` PASS; `git diff --check` PASS. Rendered/live acceptance not run; no new tests for this sizing-only change.
+
+
+## 2026-10-29 — Saved interview trainer prompt
+
+- Added `docs/prompts/interview-trainer-custom-instructions.md` containing the previously supplied custom instructions and a link to CV/notes setup; indexed from INDEX and STATUS. No application settings changed.
+- Verification: prompt checked against the conversation; relative file links checked; `git diff --check` PASS. Documentation-only change; runtime tests not run.
+
+
+## 2026-10-29 — Wider Working answers
+
+- Hid Kept / previous using the user-authorized quick fallback; Working answers spans both former answer columns, the compact bottom row and the Focus area. Removed the divider between the answer columns.
+- Kept records remain in session; kept-card access through an overlay is deferred.
+- Verification: `cd frontend && npx tsc --noEmit` PASS; `git diff --check` PASS. Rendered acceptance not run.
+
+
+## 2026-10-29 — Grouped RAG citation validation
+
+- Fixed false answer failures when the model groups valid source IDs in one bracket, such as `[doc:0, doc:1]`. Previously the full group was compared as one identity, reproducing the operator's exact error string.
+- Split comma/semicolon citation groups and deduplicate individual IDs; retain strict rejection of unretrieved document/chunk IDs. No model retries or protocol change.
+- Verification: regression reproduced the reported error before the fix; `cd backend && .venv/bin/python -m unittest discover -s tests -q` PASS240, including valid comma/semicolon groups, repeated IDs and rejection of unknown documents/unretrieved chunks; `git diff --check` PASS. No paid/live inference rerun. Active backend left running to preserve the operator's transcript/session; restart required to load the fix.

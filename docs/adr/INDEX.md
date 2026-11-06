@@ -10,7 +10,7 @@
 - [ADR 0008: Local RAG with SQLite Vector Store](0008-local-rag-sqlite-vector-store.md)
 - [ADR 0009: PipeWire-Native Audio Discovery Fallback](0009-pipewire-native-audio-discovery-fallback.md)
 - [ADR 0010: Vercel AI Gateway for Cloud AI](0010-vercel-ai-gateway-for-cloud-ai.md)
-- [ADR 0011: Question Assistance Workbench (Proposed)](0011-question-assistance-cockpit.md)
+- [ADR 0011: Question Assistance Workbench (Accepted, M11; M10 evidence and optional opaque fallback)](0011-question-assistance-cockpit.md)
 - [ADR 0012: Cockpit Protocol v2, Single-Controller Ownership and Scoped Lifecycle (Accepted for M03 transport; amended by ADR 0014)](0012-cockpit-protocol-and-session-lifecycle.md)
 - [ADR 0013: Stream Answers from Transcript Text (Accepted)](0013-stream-transcript-text-answers.md)
 - [ADR 0014: Protocol v3 — Model-Readiness Metadata and the Timing Contract (Accepted for M3bis)](0014-protocol-v3-timing-and-model-readiness.md)
@@ -25,3 +25,5 @@
 - [ADR 0019: owned FULL AUTO scheduling](0019-owned-full-auto-scheduling.md) — accepted M08, protocol v6 and synthetic scheduler/race acceptance.
 
 - [ADR 0020: review lifecycle cleanup and local runtime data](0020-review-lifecycle-and-local-data-safety.md) — PR #1 remediation.
+
+- [0021: Native controls and opaque Focus](0021-native-controls-and-opaque-focus.md) — accepted; validated IPC, shortcuts and single-window opaque fallback.

@@ -1,0 +1,88 @@
+{
+  "mode": "synthetic",
+  "calls": 8,
+  "detectorCalls": 4,
+  "maxConcurrent": 1,
+  "answers": [
+    {
+      "model": "openai/gpt-5.6-sol",
+      "firstDeltaMs": 0.06967900117160752,
+      "deltaCount": 2,
+      "elapsedMs": 2001.170842002466,
+      "inputTokens": 10,
+      "outputTokens": 20
+    },
+    {
+      "model": "openai/gpt-5.6-sol",
+      "firstDeltaMs": 0.28387799829943106,
+      "deltaCount": 2,
+      "elapsedMs": 2002.6884079998126,
+      "inputTokens": 10,
+      "outputTokens": 20
+    },
+    {
+      "model": "openai/gpt-5.6-sol",
+      "firstDeltaMs": null,
+      "deltaCount": 0,
+      "elapsedMs": 0.1808560009521898,
+      "inputTokens": 10,
+      "outputTokens": 0
+    },
+    {
+      "model": "openai/gpt-5.6-sol",
+      "firstDeltaMs": 0.33738800266291946,
+      "deltaCount": 2,
+      "elapsedMs": 2002.2633520020463,
+      "inputTokens": 10,
+      "outputTokens": 20
+    },
+    {
+      "model": "openai/gpt-5.6-sol",
+      "firstDeltaMs": 0.3749879979295656,
+      "deltaCount": 2,
+      "elapsedMs": 2003.3689689989842,
+      "inputTokens": 10,
+      "outputTokens": 20
+    }
+  ],
+  "errors": [
+    "Synthetic partial failure",
+    "Synthetic pre-stream failure",
+    "generation_cancelled"
+  ],
+  "commandTypes": [
+    "answer_action",
+    "cancel_answer",
+    "candidate_action",
+    "claim_control",
+    "configure_auto",
+    "create_snapshot",
+    "get_audio_sources",
+    "get_model_details",
+    "get_models",
+    "hello",
+    "interaction_state",
+    "rag_ingest",
+    "rag_list",
+    "rerun_answer",
+    "run_benchmark",
+    "run_context_query",
+    "set_audio_mode",
+    "set_audio_source",
+    "set_auto",
+    "set_mic_source",
+    "snapshot_action",
+    "start_transcription",
+    "stop_transcription"
+  ],
+  "terminalStatuses": [
+    "completed",
+    "completed",
+    "failed",
+    "empty",
+    "failed",
+    "cancelled",
+    "completed",
+    "completed"
+  ]
+}

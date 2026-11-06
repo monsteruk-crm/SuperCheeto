@@ -141,6 +141,39 @@ class AnswerServiceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(emitted, ["Evidence says [doc-unknown:9], but actually we had [doc-a:3]."])
         self.assertEqual(record.metadata["retrieval"].outcome, RetrievalOutcome.USED)
 
+    async def test_grouped_citations_validate_each_id_against_this_requests_evidence(self):
+        doc = "eadebb45ba855ead089cea54766b192f6e5992ff"
+        chunks = [SimpleNamespace(doc_id=doc, file_path="/local/cv.txt", chunk_index=i,
+                                  title="cv.txt", text="retrieved source") for i in (0, 1, 2, 3, 6)]
+
+        class Store:
+            async def search(self, *args, **kwargs): return chunks
+            def list_documents(self): return [object()]
+
+        for text, invalid in [
+            (f"Experience [{doc}:0, {doc}:1] and [{doc}:0, {doc}:3, {doc}:1, {doc}:2, {doc}:1, {doc}:6].", None),
+            (f"Experience [{doc}:0; {doc}:1] [{doc}:2].", None),
+            (f"Experience [{doc}:0, {doc}:7, {doc}:7].", f"{doc}:7"),
+            (f"Experience [{doc}:0, unknown-document:1].", "unknown-document:1"),
+        ]:
+            with self.subTest(text=text):
+                async def runner(**kwargs):
+                    await kwargs["on_stream_delta"](text)
+                    return SimpleNamespace(text=text)
+                async def provider(): return runner
+                record = SimpleNamespace(accepted_perf=1.0, timing={}, metadata={})
+                service = AnswerService(rag_store=Store(), embed_texts=lambda _: None, top_k=6,
+                                        runner_provider=provider, clock=lambda: 1.1)
+                call = service.run(record=record, selected_text="question", instruction="answer",
+                                   model="m", screenshot_data_url=None, on_delta=lambda _: None)
+                if invalid:
+                    with self.assertRaises(InvalidCitationError) as caught:
+                        await call
+                    self.assertEqual(str(caught.exception).split(": ", 1)[1], invalid)
+                else:
+                    result = await call
+                    self.assertEqual(result.generation.text, text)
+
 
 async def _empty(): return []
 

@@ -1,7 +1,7 @@
 # ADR 0011: Question assistance workbench
 
 ## Status
-Proposed
+Accepted, 27 October 2026. Required implemented decisions have M04–M10 acceptance evidence. Optional native translucency uses the documented opaque fallback in ADR 0021. Acceptance does not assert semantic accuracy or unavailable speech-aligned latency/cost metrics.
 
 ## Context
 On 23 October 2026 the user requested a UX design and implementation prompt, dark translucent styling, one-press assistance and FULL AUTO. They then rejected the initial oversized answer pane and assumptions that AI would reliably organize a flood of speech into questions. Their revised layout requests two answer columns, one transcript column and one question column.
@@ -9,7 +9,7 @@ On 23 October 2026 the user requested a UX design and implementation prompt, dar
 The bootstrap's manual text-selection path, Python/Electron, local audio/STT and Gateway constraints remain. The current server's global query task, broadcasts and absent protocol negotiation/ownership need work before AUTO.
 
 ## Decision
-Propose a four-column workbench with an independent raw transcript, fallible overlapping question hypotheses, persistent working answer cards and kept/previous cards. The primary no-selection action snapshots recent raw TIME context directly; question detection is optional. Show original words separately from inferred/human-set intent. Provide quick source inspection, manual creation, edit/split/merge, dismiss/undo and wrong-question correction. Every answer is an unreviewed draft; pinning or source linkage does not verify it.
+Use a four-column workbench with an independent raw transcript, fallible overlapping question hypotheses, persistent working answer cards and kept/previous cards. The primary no-selection action snapshots recent raw TIME context directly; question detection is optional. Show original words separately from inferred/human-set intent. Provide quick source inspection, manual creation, edit/split/merge, dismiss/undo and wrong-question correction. Every answer is an unreviewed draft; pinning or source linkage does not verify it.
 
 Use backend-owned bounded detection/scheduling, one answer job and newest pending automatic candidate while retaining the inspectable candidate inbox. Human correction/selection prevents automatic interference. New answers add immutable cards instead of replacing pinned/read content. This revision supersedes the earlier proposal's 70/30 layout and timed eight-second replacement/countdown; version history retains that design.
 
@@ -17,7 +17,7 @@ Require request/answer/snapshot/candidate revision/session identity, single cont
 
 Preserve the original separate SettingsPage and all existing Desk/RAG/docs/model/benchmark/image features and stored data. A dedicated audio overlay relocates source controls while a selected-input level bar remains in the main header. Opening preferences must not alter capture/query lifecycle; real telemetry reuses the existing audio_level contract.
 
-Use a working opaque Desk baseline, with optional supported native translucency verified against the installed Electron build and actual Ubuntu compositor. Text/cards remain opaque. No runtime contract, DB schema, capture strategy or application source changes occur in this design iteration.
+Use a working opaque Desk baseline, with optional supported native translucency verified against the installed Electron build and actual Ubuntu compositor. Text/cards remain opaque. Implementation evolved through protocols v2–v6; the SQLite document schema and local capture/STT boundary remain unchanged.
 
 ## Alternatives considered
 - The original 70/30 answer pane: large reading anchor, poor transcript space and density; rejected by the user.
@@ -29,7 +29,7 @@ Use a working opaque Desk baseline, with optional supported native translucency 
 - Whole-window opacity: hurts text contrast and has Linux limitations; background alpha plus native fallback.
 
 ## Consequences
-This requires orchestration/protocol work as well as layout. Detection/generation can fail semantically even when IDs/ranges validate. Measure real latency, false positives/negatives, recovery effort and call counts with messy speech; do not claim infallibility from a polished demo. Retain raw-context access during detector outages. Native features need device/compositor acceptance. Keep this ADR Proposed until the implementation and acceptance establish actual behavior.
+This requires orchestration/protocol work as well as layout. Detection/generation can fail semantically even when IDs/ranges validate. Measure real latency, false positives/negatives, recovery effort and call counts with messy speech; do not claim infallibility from a polished demo. Retain raw-context access during detector outages. Native features need device/compositor acceptance. Implementation and required functional acceptance are recorded below; semantic quality remains a measured limitation.
 
 See [specification](../design/live-helper-cockpit.md), [implementation prompt](../prompts/live-helper-cockpit-implementation.md), [design index](../design/INDEX.md) and current [API](../API.md).
 
@@ -39,7 +39,7 @@ The [bootstrap](../prompts/bootstrap.md) scope (local audio/STT, Gateway languag
 
 ## Implementation contracts (C01-C06)
 
-These are the planning contracts from the [execution plan](live-helper-cockpit-execution-plan.md). They are **Proposed** until implemented and accepted; they do not change any runtime contract on their own.
+These contracts originated in the [execution plan](../plans/live-helper-cockpit-execution-plan.md). They are accepted through the implementation/evidence mapping below. C03 records the original v2 design; the current [API](../API.md) and ADRs 0014/0016/0018/0019 define the implemented v3–v6 payloads. Original command names and rollout instructions here are design history, not an additional wire API.
 
 - **C01 — Separate raw evidence, intent, execution, and display.** Raw finalized text stays exactly as accepted by the existing STT/store pipeline (no semantic cleanup or question grouping). Keep the existing near-duplicate STT suppression; detector deduplication is separate. A snapshot owns copies of text and source metadata, so later transcript changes cannot modify it. Candidate wording and human-edited wording are separate from the raw excerpt. One generation creates one answer card; working and kept columns are display locations, not parallel model jobs. Keep candidate workflow, generation status, unreviewed label, placement, and supersession metadata separate; pinning does not imply correctness. Snapshots/cards stay ephemeral initially; existing persistent preferences, benchmark data, and RAG SQLite storage are preserved.
 - **C02 — Identity and source offsets.** Introduce `backendInstanceId`, `connectionId`, `sessionEpoch`, `audioEpoch`, `segmentKey` (composite of `audioEpoch` + original segment ID), `transcriptRevision`, `snapshotId`, `candidateId`/`candidateRevision`, `requestId`/`answerId`, `commandId`, and `eventSeq`. Use half-open character offsets `[start, end)` in Unicode code points (Python slicing convention); convert browser UTF-16 DOM offsets explicitly. Every source span carries `segmentKey`, revision, offsets, `t0`, `t1`, source kind, source name, and `audioEpoch`; ranges validate against actual stored text. Source kind identifies an input, not a person. The no-target action freezes a window ending at the last finalized anchor visible at the press; it must not include newer text received before processing the command. Use complete intersecting finalized segments because word-level timing is unavailable; report the actual included range.
@@ -51,3 +51,17 @@ These are the planning contracts from the [execution plan](live-helper-cockpit-e
 ## Frontend test-tool choice (M00)
 
 Deterministic frontend tests use Vitest + jsdom + React Testing Library + user-event (`npm run test`, `npm run test:watch`). Configuration is local (`frontend/vitest.config.ts`) and test-only helpers/fixtures live under `frontend/src/cockpit/__tests__/`. The production build still uses `vite.config.ts`; the backend keeps Python `unittest`. This does not upgrade the application stack and performs no live backend, audio, RAG, or paid calls.
+
+
+## Acceptance evidence (M11)
+
+| Decision | Implemented evidence |
+| --- | --- |
+| C01/C02: separate evidence/intent/display, immutable identity and offsets | Snapshot/transport suites; [M04/M05](../notes/2026-10-25-m04-m05-acceptance.md); M10 A02/A03/A08/A17 |
+| C03/C04: scoped versioned lifecycle, ownership, reconciliation and compatibility | ADR 0012 plus ADRs 0014/0016/0018/0019; M10 A01/A17/A25/A27 |
+| C05: targets/profiles/attachments/frozen reruns and human notes | M04/M05; M10 A03–A06/A13; native screenshot evidence in [M09](../notes/2026-10-26-m09-acceptance.md) |
+| C06: bounds, independent detection, one active/newest pending AUTO, no paid retry | [M07](../notes/2026-10-26-m07-acceptance.md), [M08](../notes/2026-10-26-m08-acceptance.md); M10 A14–A17/A22/A28 |
+| Sound, Settings and original stored-data parity | [M06](../notes/2026-10-26-m06-acceptance.md); M10 A09–A13 and preservation receipts |
+| Native baseline and integrated real path | M09 A18/A19/A23; [M10](../notes/2026-10-26-m10-acceptance.md) A01–A28, with optional A20 unsupported |
+
+ADR 0021 accepts resizable opaque Desk/Focus for Electron 31.7.7 on the tested compositor. No transparency, native blur or whole-window opacity is claimed. Real system capture/local STT, Gateway manual/AUTO and embeddings/RAG passed; microphone hardware and paid benchmarks were outside that smoke. Reference-aligned STT accuracy/speech-end latency and billed answer cost remain unavailable. All proposals and answers remain fallible, unreviewed drafts. [Final handoff](../notes/2026-10-27-m11-handoff.md).

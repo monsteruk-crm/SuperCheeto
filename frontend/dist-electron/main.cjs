@@ -5,7 +5,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const electron_1 = require("electron");
 const path_1 = __importDefault(require("path"));
+const native_contract_cjs_1 = require("./native-contract.cjs");
+const window_state_cjs_1 = require("./window-state.cjs");
 const isDev = () => Boolean(process.env.VITE_DEV_SERVER_URL || process.env.NODE_ENV === 'development');
+const shortcuts = { answer: false, capture: false };
+let mainWindow = null;
+let windowState = null;
+const ANSWER_SHORTCUT = 'CommandOrControl+Alt+Enter';
 const CAPTURE_SCREEN_SHORTCUT = 'CommandOrControl+Alt+C';
 electron_1.app.commandLine.appendSwitch('enable-features', 'GlobalShortcutsPortal');
 const buildContentSecurityPolicy = () => [
@@ -42,6 +48,10 @@ const createWindow = () => {
             nodeIntegration: false
         }
     });
+    mainWindow = win;
+    windowState = new window_state_cjs_1.WindowState(win, bounds => electron_1.screen.getDisplayMatching(bounds).workArea);
+    win.on('closed', () => { mainWindow = null; windowState = null; });
+    win.on('always-on-top-changed', () => publishNativeState());
     // Markdown links open in the external browser; they never navigate a renderer
     // that has the screenshot preload bridge.
     win.webContents.setWindowOpenHandler(({ url }) => {
@@ -60,20 +70,36 @@ const createWindow = () => {
     const devUrl = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173';
     if (isDev()) {
         win.loadURL(devUrl);
-        win.webContents.openDevTools({ mode: 'detach' });
+        if (process.env.OPEN_DEVTOOLS === '1')
+            win.webContents.openDevTools({ mode: 'detach' });
     }
     else {
         win.loadFile(path_1.default.join(__dirname, '../dist/index.html'));
     }
 };
 const sendCaptureScreenShortcut = () => {
-    const win = electron_1.BrowserWindow.getAllWindows()[0];
+    const win = mainWindow;
     if (!win || win.isDestroyed()) {
         return;
     }
     win.webContents.send('capture-screen-hotkey');
 };
-electron_1.ipcMain.handle('capture-screen', async () => {
+const assertSender = (event) => {
+    (0, native_contract_cjs_1.validateNativeSender)(event, mainWindow);
+};
+const publishNativeState = () => {
+    if (mainWindow && !mainWindow.isDestroyed() && windowState)
+        mainWindow.webContents.send('native-state', windowState.read(shortcuts));
+};
+electron_1.ipcMain.handle('get-native-state', event => { assertSender(event); return windowState.read(shortcuts); });
+electron_1.ipcMain.handle('set-window-state', (event, change) => {
+    assertSender(event);
+    windowState.apply((0, native_contract_cjs_1.validateWindowChange)(change));
+    publishNativeState();
+    return windowState.read(shortcuts);
+});
+let captureTask = null;
+const capturePrimaryScreen = async () => {
     const primaryDisplay = electron_1.screen.getPrimaryDisplay();
     const targetWidth = Math.max(1280, Math.floor(primaryDisplay.size.width * 0.75));
     const targetHeight = Math.max(720, Math.floor(primaryDisplay.size.height * 0.75));
@@ -81,18 +107,33 @@ electron_1.ipcMain.handle('capture-screen', async () => {
         types: ['screen'],
         thumbnailSize: { width: targetWidth, height: targetHeight }
     });
-    const source = sources[0];
-    if (!source)
-        return null;
+    const source = (0, native_contract_cjs_1.selectPrimaryScreen)(sources, String(primaryDisplay.id), process.platform === 'linux' && Boolean(process.env.WAYLAND_DISPLAY));
     const jpeg = source.thumbnail.toJPEG(72);
     return `data:image/jpeg;base64,${jpeg.toString('base64')}`;
+};
+electron_1.ipcMain.handle('capture-screen', event => {
+    assertSender(event);
+    if (!captureTask)
+        captureTask = capturePrimaryScreen().finally(() => { captureTask = null; });
+    return captureTask;
 });
 electron_1.app.whenReady().then(() => {
     installContentSecurityPolicy();
     createWindow();
-    if (!electron_1.globalShortcut.register(CAPTURE_SCREEN_SHORTCUT, sendCaptureScreenShortcut)) {
-        console.warn(`Failed to register global shortcut: ${CAPTURE_SCREEN_SHORTCUT}`);
+    for (const [action, accelerator, callback] of [
+        ['answer', ANSWER_SHORTCUT, () => mainWindow?.webContents.send('answer-hotkey')],
+        ['capture', CAPTURE_SCREEN_SHORTCUT, sendCaptureScreenShortcut]
+    ]) {
+        try {
+            shortcuts[action] = electron_1.globalShortcut.register(accelerator, callback);
+        }
+        catch {
+            shortcuts[action] = false;
+        }
+        if (!shortcuts[action])
+            console.warn(`Failed to register global shortcut: ${accelerator}`);
     }
+    publishNativeState();
     electron_1.app.on('activate', () => {
         if (electron_1.BrowserWindow.getAllWindows().length === 0) {
             createWindow();

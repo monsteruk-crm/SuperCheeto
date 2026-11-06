@@ -70,6 +70,24 @@ class SchedulingTests(unittest.IsolatedAsyncioTestCase):
         await self.d.set_enabled(True,retry=True);await self.finish();self.assertEqual(self.run.await_count,2)
         self.store.add_segment(Segment(id=2,t0=5,t1=6,text='new question',is_final=True));self.d.changed();await self.finish()
         self.assertEqual(self.run.await_count,3)
+    async def test_empty_passes_keep_checking_new_speech_until_a_grounded_question_arrives(self):
+        self.run.side_effect = lambda frozen: {'proposals': []} if frozen.revision < 5 else output(frozen)
+        await self.d.set_enabled(True)
+        await self.finish()
+        for revision in range(2, 6):
+            self.store.add_segment(Segment(id=revision,t0=revision*5,t1=revision*5+1,
+                text='ordinary movie dialogue' if revision < 5 else 'why did you change the plan?',is_final=True))
+            self.d.changed()
+            await self.finish()
+        self.assertEqual(self.run.await_count, 5)
+        self.assertTrue(self.d.enabled)
+        self.assertEqual(self.publish.await_count, 5)
+        self.assertTrue(all(not call.args[0] for call in self.publish.await_args_list[:4]))
+        self.assertEqual(len(self.publish.await_args_list[-1].args[0]), 1)
+        self.d.changed()
+        await self.finish()
+        self.assertEqual(self.run.await_count, 5, 'Unchanged audio must not create paid polling')
+
     async def test_one_inflight_coalesces_to_latest_revision(self):
         entered=asyncio.Event();release=asyncio.Event();starts=[];active=0;maximum=0
         async def runner(frozen):

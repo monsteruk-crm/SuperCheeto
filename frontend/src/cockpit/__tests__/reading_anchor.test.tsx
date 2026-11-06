@@ -1,28 +1,51 @@
 import React from 'react'
 import {afterEach,expect,it,vi} from 'vitest'
-import {fireEvent,render,screen} from '@testing-library/react'
-import {useReadingAnchor} from '../use_reading_anchor'
+import {act,fireEvent,render,screen,waitFor} from '@testing-library/react'
+import {useAutoScroll} from '../use_auto_scroll'
 import {requestList,initialCockpitState,cockpitReducer,type RequestRecord} from '../reducer'
-let firstHeight=300
 const record=(answerId:string,text='text')=>({answerId,text,status:'completed'} as RequestRecord)
-function Harness({records}:{records:RequestRecord[]}){const anchor=useReadingAnchor(records);return <><div data-testid="pane" ref={anchor.ref} onScroll={anchor.capture}>{records.map((item)=><article key={item.answerId} data-answer-id={item.answerId}>{item.text}</article>)}</div>{anchor.newCount?<button onClick={anchor.showLatest}>{anchor.newCount} new drafts</button>:null}</>}
-afterEach(()=>vi.restoreAllMocks())
-it('keeps the same reading card at the same offset as an earlier streamed card grows and new drafts arrive',()=>{
- firstHeight=300
- vi.spyOn(HTMLElement.prototype,'getBoundingClientRect').mockImplementation(function(this:HTMLElement){
-  const pane=this.dataset.testid==='pane'?this:document.querySelector<HTMLElement>('[data-testid="pane"]')
-  const scroll=pane?.scrollTop||0
-  const top=this.dataset.testid==='pane'?100:this.dataset.answerId==='first'?100-scroll:100+firstHeight-scroll
-  const height=this.dataset.testid==='pane'?300:this.dataset.answerId==='first'?firstHeight:300
-  return {x:0,y:top,top,left:0,right:400,bottom:top+height,width:400,height,toJSON(){return {}}} as DOMRect
+function Harness({records,visible=true}:{records:RequestRecord[];visible?:boolean}){
+ const ref=useAutoScroll(records.map(r=>`${r.answerId}:${r.text}`).join('|'),visible)
+ return <div data-testid="pane" ref={ref}>{records.map(item=><article key={item.answerId}>{item.text}</article>)}</div>
+}
+afterEach(()=>{vi.restoreAllMocks();vi.unstubAllGlobals()})
+it('follows new cards and streamed text to the bottom even after scrolling up',()=>{
+ let height=600
+ vi.spyOn(HTMLElement.prototype,'scrollHeight','get').mockImplementation(()=>height)
+ const {rerender}=render(<Harness records={[record('first')]}/>)
+ const pane=screen.getByTestId('pane')
+ expect(pane.scrollTop).toBe(600)
+ pane.scrollTop=10;fireEvent.scroll(pane)
+ height=900
+ rerender(<Harness records={[record('first'),record('second')]}/>)
+ expect(pane.scrollTop).toBe(900)
+ height=1200
+ rerender(<Harness records={[record('first'),record('second','streamed text')]}/>)
+ expect(pane.scrollTop).toBe(1200)
+})
+it('catches up when a hidden page becomes visible',()=>{
+ vi.spyOn(HTMLElement.prototype,'scrollHeight','get').mockReturnValue(800)
+ const {rerender}=render(<Harness records={[record('first')]} visible={false}/>)
+ const pane=screen.getByTestId('pane');expect(pane.scrollTop).toBe(0)
+ rerender(<Harness records={[record('first')]} visible/>)
+ expect(pane.scrollTop).toBe(800)
+})
+
+it('follows late content resizing and DOM growth, and disconnects observers',async()=>{
+ let height=600,resize=()=>{}
+ const disconnect=vi.fn()
+ vi.stubGlobal('ResizeObserver',class {
+  constructor(callback:()=>void){resize=callback}
+  observe(){}
+  disconnect=disconnect
  })
- const {rerender}=render(<Harness records={[record('first'),record('reading')]}/>)
- const pane=screen.getByTestId('pane');pane.scrollTop=350;fireEvent.scroll(pane)
- firstHeight=500
- rerender(<Harness records={[record('first','a longer streamed answer'),record('reading'),record('new')]}/>)
- expect(pane.scrollTop).toBe(550)
- expect((pane.querySelector('[data-answer-id="reading"]') as HTMLElement).getBoundingClientRect().top).toBe(50)
- expect(screen.getByRole('button',{name:'1 new drafts'})).toBeInTheDocument()
+ vi.spyOn(HTMLElement.prototype,'scrollHeight','get').mockImplementation(()=>height)
+ const {unmount}=render(<Harness records={[record('first')]}/>)
+ const pane=screen.getByTestId('pane')
+ height=850;act(()=>resize());expect(pane.scrollTop).toBe(850)
+ height=1000;pane.appendChild(document.createElement('p'))
+ await waitFor(()=>expect(pane.scrollTop).toBe(1000))
+ disconnect.mockClear();unmount();expect(disconnect).toHaveBeenCalledOnce()
 })
 
 it('returns stable append order for old and new cards',()=>{
